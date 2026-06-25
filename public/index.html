@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #1a1a2e;
+      --bg-card: rgba(22, 33, 62, 0.8);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #4CAF50;
+      --accent-green-hover: #43a047;
+      --accent-green-glow: rgba(76, 175, 80, 0.25);
+      --danger: #ef4444;
+      --input-bg: rgba(15, 23, 42, 0.6);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(76, 175, 80, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.25rem;
+      filter: drop-shadow(0 4px 10px var(--accent-green-glow));
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 12px rgba(76, 175, 80, 0.15);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, var(--accent-green), #66bb6a);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px var(--accent-green-glow);
+      margin-top: 1rem;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(76, 175, 80, 0.4);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .error-container {
+      min-height: 24px;
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: none;
+      animation: shake 0.4s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    footer {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.025em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-container">
+      <div class="logo-icon">✅</div>
+      <h1>TaskFlow</h1>
+      <p class="subtitle">Task Management System</p>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <div class="input-wrapper">
+          <input type="email" id="email" required placeholder="name@company.com" autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login">Sign In</button>
+
+      <div class="error-container">
+        <div id="errorMsg" class="error-msg"></div>
+      </div>
+    </form>
+  </div>
+
+  <footer>
+    TaskFlow &copy; 2026. Streamline beautifully.
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem('taskflow_user') || 'null');
+        if (savedUser && savedUser.role === 'manager') {
+          window.location.replace('dashboard.html');
+        } else if (savedUser && savedUser.role === 'employee') {
+          window.location.replace('my-tasks.html');
+        }
+      } catch (err) {
+        console.error('Session redirect error:', err);
+      }
+    });
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const errorMsg = document.getElementById('errorMsg');
+      const loginBtn = document.querySelector('.btn-login');
+      
+      // Reset state
+      errorMsg.style.display = 'none';
+      errorMsg.textContent = '';
+      
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      try {
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Signing In...';
+        
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Authentication failed');
+        }
+        
+        // Save user to localStorage
+        localStorage.setItem('taskflow_user', JSON.stringify(result));
+        
+        // Redirect based on role
+        if (result.role === 'manager') {
+          window.location.href = 'dashboard.html';
+        } else if (result.role === 'employee') {
+          window.location.href = 'my-tasks.html';
+        } else {
+          throw new Error('Unknown user role: ' + result.role);
+        }
+        
+      } catch (err) {
+        console.error('Login error:', err);
+        errorMsg.textContent = err.message;
+        errorMsg.style.display = 'block';
+        
+        // Visual shake animation trigger
+        errorMsg.style.animation = 'none';
+        errorMsg.offsetHeight; /* trigger reflow */
+        errorMsg.style.animation = null;
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+      }
+    }
+  </script>
+</body>
+</html>

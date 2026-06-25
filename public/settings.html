@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow - Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #1a1a2e;
+      --bg-card: #16213e;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #ffffff;
+      --text-muted: #cbd5e1;
+      --accent: #4CAF50;
+      --danger: #ef4444;
+      --info: #0284c7;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(76, 175, 80, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.04) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    #settingsContent { display: none; flex-direction: column; width: 100%; }
+
+    header {
+      position: sticky;
+      top: 0;
+      height: 75px;
+      background-color: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2rem;
+      z-index: 1000;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .header-left, .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .logo-container { display: flex; align-items: center; gap: 0.6rem; }
+    .logo-icon { font-size: 1.6rem; }
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #e2e8f0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav { display: flex; align-items: center; gap: 0.35rem; }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.52rem 0.95rem;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
+    }
+    .nav-link:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .nav-link.active {
+      color: #fff;
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.08);
+    }
+
+    .welcome-text { font-weight: 500; color: var(--text-main); font-size: 0.95rem; }
+    .mobile-menu-btn { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.1);
+      color: #fda4af;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      padding: 0.54rem 0.95rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-logout:hover { background: var(--danger); color: white; }
+
+    .main-container {
+      max-width: 1180px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+    }
+
+    .page-title h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+    .page-title p {
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 1.2rem;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+    }
+
+    .card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.7rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .info-row strong { color: var(--text-main); }
+
+    .badge {
+      display: inline-block;
+      padding: 0.28rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      border: 1px solid transparent;
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--accent);
+      border-color: rgba(76, 175, 80, 0.2);
+    }
+
+    .btn-secondary,
+    .btn-danger {
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .btn-secondary:hover,
+    .btn-danger:hover { transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.14);
+      color: #fda4af;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.8rem;
+    }
+
+    .muted { color: var(--text-muted); }
+
+    .state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 860px) {
+      header { padding: 0 1rem; }
+      nav {
+        display: none;
+        position: fixed;
+        top: 75px;
+        left: 0;
+        right: 0;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border-color);
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0.75rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      }
+      nav.active { display: flex; }
+      .mobile-menu-btn { display: block; }
+      .welcome-text { display: none; }
+      .main-container { padding: 1rem 0.9rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="settingsContent">
+    <header>
+      <div class="header-left">
+        <div class="logo-container">
+          <span class="logo-icon">✅</span>
+          <span class="logo-text">TaskFlow</span>
+        </div>
+        <nav id="navLinks"></nav>
+      </div>
+      <div class="header-right">
+        <span class="welcome-text" id="welcomeMsg">Welcome</span>
+        <button class="btn-logout" onclick="handleLogout(event)">Logout</button>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <section class="page-title">
+        <div>
+          <h1>Settings</h1>
+          <p>Review your account details and app preferences.</p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h3>Profile</h3>
+          <div class="info-row"><span>Name</span><strong id="profileName">—</strong></div>
+          <div class="info-row"><span>Email</span><strong id="profileEmail">—</strong></div>
+          <div class="info-row"><span>Role</span><strong id="profileRole">—</strong></div>
+        </div>
+
+        <div class="card">
+          <h3>Preferences</h3>
+          <div class="info-row"><span>Theme</span><strong>Dark Theme</strong></div>
+          <div class="info-row"><span>Enabled</span><strong>Yes</strong></div>
+          <div class="info-row"><span>Version</span><strong>v1.0</strong></div>
+          <div class="info-row"><span>Current Role</span><strong id="prefRole">—</strong></div>
+        </div>
+
+        <div class="card">
+          <h3>Account</h3>
+          <div class="actions">
+            <button class="btn-secondary" onclick="handleLogout(event)">Logout</button>
+            <button class="btn-danger" onclick="clearLocalStorage()">Clear Local Storage</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h3>System Information</h3>
+          <div class="info-row"><span>Assigned Tasks</span><strong id="assignedTasks">0</strong></div>
+          <div class="info-row"><span>Total Tasks</span><strong id="totalTasks">0</strong></div>
+          <div class="info-row"><span>Current Login Role</span><strong id="loginRole">—</strong></div>
+          <div class="info-row"><span>Date & Time</span><strong id="currentTime">—</strong></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    (function init() {
+      const userStr = localStorage.getItem('taskflow_user');
+      if (!userStr) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      try {
+        currentUser = JSON.parse(userStr);
+        if (!currentUser || !currentUser.role) {
+          throw new Error('Invalid user session');
+        }
+
+        document.getElementById('settingsContent').style.display = 'flex';
+        renderNavigation();
+        populateProfile();
+        populateSystemInfo();
+        setInterval(updateClock, 1000);
+        updateClock();
+      } catch (err) {
+        console.error(err);
+        localStorage.removeItem('taskflow_user');
+        window.location.href = 'index.html';
+      }
+    })();
+
+    function toggleMobileMenu() {
+      document.getElementById('navLinks').classList.toggle('active');
+    }
+
+    function renderNavigation() {
+      const nav = document.getElementById('navLinks');
+      if (!currentUser) return;
+
+      const isManager = currentUser.role === 'manager' || currentUser.role === 'admin';
+      nav.innerHTML = isManager
+        ? `
+          <a href="dashboard.html" class="nav-link">Dashboard</a>
+          <a href="tasks.html" class="nav-link">Tasks</a>
+          <a href="team.html" class="nav-link">Team</a>
+          <a href="settings.html" class="nav-link active">Settings</a>
+        `
+        : `
+          <a href="my-tasks.html" class="nav-link">My Tasks</a>
+          <a href="settings.html" class="nav-link active">Settings</a>
+        `;
+    }
+
+    function populateProfile() {
+      const profileName = document.getElementById('profileName');
+      const profileEmail = document.getElementById('profileEmail');
+      const profileRole = document.getElementById('profileRole');
+      const prefRole = document.getElementById('prefRole');
+      const welcomeMsg = document.getElementById('welcomeMsg');
+      const loginRole = document.getElementById('loginRole');
+
+      const safeName = currentUser?.name || 'Unknown';
+      const safeEmail = currentUser?.email || '—';
+      const safeRole = currentUser?.role || 'Unknown';
+
+      profileName.textContent = safeName;
+      profileEmail.textContent = safeEmail;
+      profileRole.textContent = safeRole;
+      prefRole.textContent = safeRole;
+      welcomeMsg.textContent = `Welcome, ${safeName}`;
+      loginRole.textContent = safeRole;
+    }
+
+    async function populateSystemInfo() {
+      try {
+        const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
+        if (!isManager && currentUser?.id) {
+          const res = await fetch(`/tasks/my?user_id=${encodeURIComponent(currentUser.id)}`);
+          if (!res.ok) throw new Error('Unable to load task data');
+          const tasks = await res.json();
+          document.getElementById('assignedTasks').textContent = Array.isArray(tasks) ? tasks.length : 0;
+          document.getElementById('totalTasks').textContent = '—';
+        } else {
+          const res = await fetch('/tasks');
+          if (!res.ok) throw new Error('Unable to load task data');
+          const tasks = await res.json();
+          document.getElementById('totalTasks').textContent = Array.isArray(tasks) ? tasks.length : 0;
+          document.getElementById('assignedTasks').textContent = '—';
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById('assignedTasks').textContent = '—';
+        document.getElementById('totalTasks').textContent = '—';
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('currentTime').textContent = now.toLocaleString();
+    }
+
+    function handleLogout(event) {
+      if (event) event.preventDefault();
+      localStorage.removeItem('taskflow_user');
+      window.location.href = 'index.html';
+    }
+
+    function clearLocalStorage() {
+      const confirmed = window.confirm('Clear all local application data?');
+      if (!confirmed) return;
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

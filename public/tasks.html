@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Tasks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #1a1a2e;
+      --bg-card: #16213e;
+      --border-color: rgba(255,255,255,0.08);
+      --text-main: #ffffff;
+      --text-muted: #cbd5e1;
+      --accent: #4CAF50;
+      --accent-hover: #43a047;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #0284c7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(76,175,80,0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(99,102,241,0.04) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    #tasksContent {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 75px;
+      background-color: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2rem;
+      z-index: 1000;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .header-left, .header-right { display: flex; align-items: center; gap: 1.5rem; }
+
+    .logo-container { display: flex; align-items: center; gap: 0.6rem; }
+    .logo-icon { font-size: 1.6rem; }
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #ffffff, #e2e8f0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    nav { display: flex; align-items: center; gap: 0.35rem; }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.52rem 0.95rem;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .nav-link:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .nav-link.active {
+      color: #fff;
+      background: rgba(76,175,80,0.15);
+      border: 1px solid rgba(76,175,80,0.3);
+    }
+
+    .welcome-text { font-weight: 500; color: var(--text-main); }
+    .btn-logout {
+      background: rgba(239,68,68,0.1);
+      color: #fda4af;
+      border: 1px solid rgba(239,68,68,0.2);
+      padding: 0.54rem 0.95rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-logout:hover { background: var(--danger); color: white; }
+
+    .main-container {
+      margin-top: 75px;
+      max-width: 1200px;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.6rem;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .page-title h1 { font-size: 1.6rem; font-weight: 700; }
+    .page-title p { color: var(--text-muted); margin-top: 0.25rem; }
+
+    .btn-create {
+      background: linear-gradient(135deg, var(--accent), #66bb6a);
+      color: white;
+      border: none;
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(76,175,80,0.2);
+      transition: all 0.2s ease;
+    }
+    .btn-create:hover { transform: translateY(-1px); }
+
+    .toolbar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 1rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .toolbar input,
+    .toolbar select {
+      padding: 0.75rem 0.9rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-main);
+      font-family: inherit;
+      min-width: 180px;
+      outline: none;
+    }
+
+    .toolbar input:focus,
+    .toolbar select:focus {
+      border-color: rgba(76,175,80,0.4);
+      box-shadow: 0 0 0 3px rgba(76,175,80,0.12);
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 1.25rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { padding: 0.95rem 0.8rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    th { color: var(--text-muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    .task-title { font-weight: 600; }
+    .badge {
+      display: inline-block;
+      padding: 0.28rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      border: 1px solid transparent;
+    }
+    .badge-completed { background: rgba(76,175,80,0.15); color: var(--accent); border-color: rgba(76,175,80,0.2); }
+    .badge-pending { background: rgba(245,158,11,0.15); color: var(--warning); border-color: rgba(245,158,11,0.2); }
+    .badge-overdue { background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.2); }
+
+    .actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    .btn-action {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-edit { background: rgba(2,132,199,0.16); color: #7dd3fc; }
+    .btn-edit:hover { background: rgba(2,132,199,0.24); }
+    .btn-delete { background: rgba(239,68,68,0.15); color: #fda4af; }
+    .btn-delete:hover { background: rgba(239,68,68,0.25); }
+
+    .loading-state, .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      gap: 0.8rem;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(76,175,80,0.16);
+      border-left-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 860px) {
+      header { padding: 0 1.25rem; }
+      nav {
+        display: none;
+        position: fixed;
+        top: 75px;
+        left: 0;
+        right: 0;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border-color);
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      }
+      nav.active { display: flex; }
+      .mobile-menu-btn {
+        display: block;
+        background: none;
+        border: none;
+        color: var(--text-main);
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      .welcome-text { display: none; }
+      .main-container { padding: 1.5rem 1rem; }
+      .toolbar { padding: 0.9rem; }
+      .toolbar input, .toolbar select { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="tasksContent">
+    <header>
+      <div class="header-left">
+        <div class="logo-container">
+          <span class="logo-icon">✅</span>
+          <span class="logo-text">TaskFlow</span>
+        </div>
+        <nav>
+          <a href="dashboard.html" class="nav-link">Dashboard</a>
+          <a href="tasks.html" class="nav-link active">Tasks</a>
+          <a href="team.html" class="nav-link">Team</a>
+          <a href="settings.html" class="nav-link">Settings</a>
+        </nav>
+      </div>
+      <div class="header-right">
+        <span class="welcome-text" id="welcomeMsg">Welcome</span>
+        <button class="btn-logout" onclick="handleLogout(event)">Logout</button>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <section class="page-header">
+        <div class="page-title">
+          <h1>Tasks</h1>
+          <p>Manage team assignments and task progress</p>
+        </div>
+        <button class="btn-create" onclick="goToCreateTask()">Create Task</button>
+      </section>
+
+      <section class="toolbar">
+        <input id="searchInput" type="text" placeholder="Search by title..." />
+        <select id="statusFilter">
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <select id="employeeFilter">
+          <option value="all">All Employees</option>
+        </select>
+      </section>
+
+      <section class="card">
+        <div id="loadingState" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading tasks and team members...</p>
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display:none;">
+          <div style="font-size:2rem;">📂</div>
+          <h3 id="emptyTitle">No tasks available</h3>
+          <p id="emptyText">There are no tasks to display right now.</p>
+        </div>
+
+        <div id="tableWrapper" class="table-wrap" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tasksTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let allTasks = [];
+    let userMap = {};
+
+    (function checkAuth() {
+      const userStr = localStorage.getItem('taskflow_user');
+      if (!userStr) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      try {
+        currentUser = JSON.parse(userStr);
+        if (!currentUser || !currentUser.role) {
+          throw new Error('Invalid session');
+        }
+
+        if (currentUser.role === 'employee') {
+          window.location.href = 'my-tasks.html';
+          return;
+        }
+
+        if (currentUser.role !== 'manager' && currentUser.role !== 'admin') {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        document.getElementById('tasksContent').style.display = 'flex';
+      } catch (err) {
+        console.error(err);
+        localStorage.removeItem('taskflow_user');
+        window.location.href = 'index.html';
+      }
+    })();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!currentUser) return;
+      document.getElementById('welcomeMsg').textContent = `Welcome, ${currentUser.name}`;
+      bindFilters();
+      loadData();
+    });
+
+    function bindFilters() {
+      document.getElementById('searchInput').addEventListener('input', renderTasks);
+      document.getElementById('statusFilter').addEventListener('change', renderTasks);
+      document.getElementById('employeeFilter').addEventListener('change', renderTasks);
+    }
+
+    function toggleMobileMenu() {
+      const nav = document.querySelector('nav');
+      nav.classList.toggle('active');
+    }
+
+    function handleLogout(event) {
+      if (event) event.preventDefault();
+      localStorage.removeItem('taskflow_user');
+      window.location.href = 'index.html';
+    }
+
+    function goToCreateTask() {
+      window.location.href = 'create-task.html';
+    }
+
+    async function loadData() {
+      const loadingState = document.getElementById('loadingState');
+      const emptyState = document.getElementById('emptyState');
+      const tableWrapper = document.getElementById('tableWrapper');
+
+      try {
+        const [usersRes, tasksRes] = await Promise.all([
+          fetch('/users'),
+          fetch('/tasks')
+        ]);
+
+        if (!usersRes.ok) throw new Error('Failed to load team members');
+        if (!tasksRes.ok) throw new Error('Failed to load tasks');
+
+        const users = await usersRes.json();
+        const tasks = await tasksRes.json();
+
+        userMap = {};
+        users.forEach(user => {
+          if (user.id) userMap[user.id] = user.name;
+        });
+
+        populateEmployeeFilter(users);
+        allTasks = Array.isArray(tasks) ? tasks : [];
+        renderTasks();
+
+        loadingState.style.display = 'none';
+        if (allTasks.length === 0) {
+          emptyState.style.display = 'flex';
+          tableWrapper.style.display = 'none';
+        } else {
+          emptyState.style.display = 'none';
+          tableWrapper.style.display = 'block';
+        }
+      } catch (err) {
+        console.error(err);
+        loadingState.style.display = 'none';
+        emptyState.style.display = 'flex';
+        tableWrapper.style.display = 'none';
+        document.getElementById('emptyTitle').textContent = 'Unable to load tasks';
+        document.getElementById('emptyText').textContent = err.message;
+      }
+    }
+
+    function populateEmployeeFilter(users) {
+      const select = document.getElementById('employeeFilter');
+      select.innerHTML = '<option value="all">All Employees</option>';
+      users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = String(user.id);
+        option.textContent = user.name;
+        select.appendChild(option);
+      });
+    }
+
+    function renderTasks() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const employeeFilter = document.getElementById('employeeFilter').value;
+      const tableBody = document.getElementById('tasksTableBody');
+      const emptyState = document.getElementById('emptyState');
+      const tableWrapper = document.getElementById('tableWrapper');
+
+      const filtered = allTasks.filter(task => {
+        const title = (task.title || '').toLowerCase();
+        const matchesSearch = !search || title.includes(search);
+
+        const taskStatus = getTaskStatus(task);
+        const matchesStatus = statusFilter === 'all' || taskStatus === statusFilter;
+
+        const assignedId = String(task.assigned_to || '');
+        const matchesEmployee = employeeFilter === 'all' || assignedId === employeeFilter;
+
+        return matchesSearch && matchesStatus && matchesEmployee;
+      });
+
+      filtered.sort((a, b) => (b.id || 0) - (a.id || 0));
+      tableBody.innerHTML = '';
+
+      if (!filtered.length) {
+        emptyState.style.display = 'flex';
+        tableWrapper.style.display = 'none';
+        document.getElementById('emptyTitle').textContent = 'No matching tasks';
+        document.getElementById('emptyText').textContent = 'Try adjusting your search or filters.';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      tableWrapper.style.display = 'block';
+
+      filtered.forEach(task => {
+        const row = document.createElement('tr');
+
+        const titleCell = document.createElement('td');
+        titleCell.className = 'task-title';
+        titleCell.textContent = task.title || 'Untitled Task';
+
+        const assigneeCell = document.createElement('td');
+        const assigneeName = userMap[task.assigned_to] || `Employee (${task.assigned_to || 'N/A'})`;
+        assigneeCell.textContent = assigneeName;
+
+        const statusCell = document.createElement('td');
+        const status = getTaskStatus(task);
+        statusCell.innerHTML = `<span class="badge badge-${status}">${status}</span>`;
+
+        const dueCell = document.createElement('td');
+        dueCell.textContent = formatDate(task.due_date);
+
+        const actionsCell = document.createElement('td');
+        actionsCell.innerHTML = `
+          <div class="actions">
+            <button class="btn-action btn-edit" onclick="handleEdit(${task.id})">Edit</button>
+            <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
+          </div>
+        `;
+
+        row.appendChild(titleCell);
+        row.appendChild(assigneeCell);
+        row.appendChild(statusCell);
+        row.appendChild(dueCell);
+        row.appendChild(actionsCell);
+        tableBody.appendChild(row);
+      });
+    }
+
+    function getTaskStatus(task) {
+      if (task.status && task.status.toLowerCase() === 'completed') return 'completed';
+      if (isOverdue(task)) return 'overdue';
+      return 'pending';
+    }
+
+    function isOverdue(task) {
+      if (!task.due_date || (task.status && task.status.toLowerCase() === 'completed')) return false;
+      const today = new Date().toISOString().split('T')[0];
+      const due = new Date(task.due_date).toISOString().split('T')[0];
+      return due < today;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return 'N/A';
+      try {
+        return new Date(dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch {
+        return dateStr;
+      }
+    }
+
+    function handleEdit(taskId) {
+      localStorage.setItem('edit_task_id', taskId);
+      window.location.href = 'create-task.html';
+    }
+
+    async function handleDelete(taskId) {
+      if (!confirm('Delete this task?')) return;
+      try {
+        const res = await fetch(`/tasks/${taskId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Unable to delete task');
+        allTasks = allTasks.filter(task => task.id !== taskId);
+        renderTasks();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>
