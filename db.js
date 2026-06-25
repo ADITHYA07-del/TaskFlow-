@@ -4,12 +4,11 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('Warning: SUPABASE_URL or SUPABASE_KEY environment variables are not set.');
+    throw new Error(
+        'Missing SUPABASE_URL or SUPABASE_KEY environment variables.'
+    );
 }
 
-const supabase = createClient(
-  supabaseUrl || 'https://your-supabase-url.supabase.co',
-  supabaseKey || 'your-supabase-key'
-);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = supabase;
