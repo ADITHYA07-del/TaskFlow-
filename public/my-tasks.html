@@ -196,7 +196,9 @@
     .badge-medium { background: rgba(245,158,11,0.16); color: #fcd34d; border-color: rgba(245,158,11,0.2); }
     .badge-low { background: rgba(76,175,80,0.16); color: #86efac; border-color: rgba(76,175,80,0.2); }
     .badge-completed { background: rgba(76,175,80,0.16); color: #86efac; border-color: rgba(76,175,80,0.2); }
-    .badge-pending { background: rgba(245,158,11,0.16); color: #fcd34d; border-color: rgba(245,158,11,0.2); }
+    .badge-pending { background: rgba(107,114,128,0.16); color: #d1d5db; border-color: rgba(107,114,128,0.2); }
+    .badge-done { background: rgba(245,158,11,0.16); color: #fcd34d; border-color: rgba(245,158,11,0.2); }
+    .badge-partial_complete { background: rgba(2,132,199,0.16); color: #7dd3fc; border-color: rgba(2,132,199,0.2); }
     .badge-overdue { background: rgba(239,68,68,0.16); color: #fda4af; border-color: rgba(239,68,68,0.2); }
 
     .btn-complete {
@@ -385,18 +387,18 @@
           card.className = 'task-card';
 
           const status = getTaskStatus(task);
+          const statusMeta = getStatusMeta(task);
           const priority = getPriority(task.priority);
-          const statusClass = status === 'completed' ? 'badge-completed' : status === 'overdue' ? 'badge-overdue' : 'badge-pending';
 
           card.innerHTML = `
             <div class="task-meta">
               <span class="badge badge-${priority.className}">${priority.label}</span>
-              <span class="badge ${statusClass}">${status}</span>
+              <span class="badge badge-${statusMeta.className}">${statusMeta.label}</span>
             </div>
             <h3>${escapeHtml(task.title || 'Untitled Task')}</h3>
             <p class="task-meta">${escapeHtml(task.description || 'No description provided.')}</p>
             <div class="task-meta"><strong>Due:</strong> ${formatDate(task.due_date)}</div>
-            ${status !== 'completed' ? `<button class="btn-complete" onclick="markComplete(${task.id})">Mark Complete</button>` : ''}
+            ${status === 'pending' ? `<button class="btn-complete" onclick="markAsDone(${task.id})">Mark as Done</button>` : ''}
           `;
 
           grid.appendChild(card);
@@ -410,12 +412,12 @@
       }
     }
 
-    async function markComplete(taskId) {
+    async function markAsDone(taskId) {
       try {
         const res = await fetch(`/tasks/${taskId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'completed' })
+          body: JSON.stringify({ status: 'done' })
         });
 
         if (!res.ok) throw new Error('Unable to update task');
@@ -429,16 +431,29 @@
     function updateStats(tasksList) {
       const total = tasksList.length;
       const completed = tasksList.filter(task => getTaskStatus(task) === 'completed').length;
-      const pending = total - completed;
+      const pending = tasksList.filter(task => ['pending', 'done', 'partial_complete'].includes(getTaskStatus(task))).length;
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statPending').textContent = pending;
       document.getElementById('statCompleted').textContent = completed;
     }
 
     function getTaskStatus(task) {
-      if (task.status && task.status.toLowerCase() === 'completed') return 'completed';
+      const status = String(task.status || '').trim().toLowerCase();
+      if (status === 'done') return 'done';
+      if (status === 'partial_complete') return 'partial_complete';
+      if (status === 'completed') return 'completed';
+      if (status === 'pending') return 'pending';
       if (isOverdue(task)) return 'overdue';
       return 'pending';
+    }
+
+    function getStatusMeta(task) {
+      const status = getTaskStatus(task);
+      if (status === 'done') return { label: 'Pending Approval', className: 'done' };
+      if (status === 'partial_complete') return { label: 'Approved - Awaiting Payment', className: 'partial_complete' };
+      if (status === 'completed') return { label: 'Completed', className: 'completed' };
+      if (status === 'overdue') return { label: 'Overdue', className: 'overdue' };
+      return { label: 'Pending', className: 'pending' };
     }
 
     function getPriority(priority) {

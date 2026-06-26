@@ -191,7 +191,9 @@
       border: 1px solid transparent;
     }
     .badge-completed { background: rgba(76,175,80,0.15); color: var(--accent); border-color: rgba(76,175,80,0.2); }
-    .badge-pending { background: rgba(245,158,11,0.15); color: var(--warning); border-color: rgba(245,158,11,0.2); }
+    .badge-pending { background: rgba(107,114,128,0.15); color: #d1d5db; border-color: rgba(107,114,128,0.2); }
+    .badge-done { background: rgba(245,158,11,0.15); color: var(--warning); border-color: rgba(245,158,11,0.2); }
+    .badge-partial_complete { background: rgba(2,132,199,0.15); color: var(--info); border-color: rgba(2,132,199,0.2); }
     .badge-overdue { background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.2); }
 
     .actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
@@ -208,6 +210,12 @@
     .btn-edit:hover { background: rgba(2,132,199,0.24); }
     .btn-delete { background: rgba(239,68,68,0.15); color: #fda4af; }
     .btn-delete:hover { background: rgba(239,68,68,0.25); }
+    .btn-approve { background: rgba(245,158,11,0.16); color: #fcd34d; }
+    .btn-approve:hover { background: rgba(245,158,11,0.24); }
+    .btn-upload { background: rgba(2,132,199,0.16); color: #7dd3fc; }
+    .btn-upload:hover { background: rgba(2,132,199,0.24); }
+    .btn-download { background: rgba(76,175,80,0.16); color: #86efac; }
+    .btn-download:hover { background: rgba(76,175,80,0.24); }
 
     .loading-state, .empty-state {
       display: flex;
@@ -296,6 +304,8 @@
         <select id="statusFilter">
           <option value="all">All Status</option>
           <option value="pending">Pending</option>
+          <option value="done">Pending Approval</option>
+          <option value="partial_complete">Approved - Awaiting Payment</option>
           <option value="completed">Completed</option>
           <option value="overdue">Overdue</option>
         </select>
@@ -501,18 +511,45 @@
 
         const statusCell = document.createElement('td');
         const status = getTaskStatus(task);
-        statusCell.innerHTML = `<span class="badge badge-${status}">${status}</span>`;
+        const statusMeta = getStatusMeta(task);
+        statusCell.innerHTML = `<span class="badge badge-${statusMeta.className}">${statusMeta.label}</span>`;
 
         const dueCell = document.createElement('td');
         dueCell.textContent = formatDate(task.due_date);
 
         const actionsCell = document.createElement('td');
-        actionsCell.innerHTML = `
+        const status = getTaskStatus(task);
+        let actionButtons = `
           <div class="actions">
             <button class="btn-action btn-edit" onclick="handleEdit(${task.id})">Edit</button>
             <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
           </div>
         `;
+
+        if (status === 'done') {
+          actionButtons = `
+            <div class="actions">
+              <button class="btn-action btn-approve" onclick="handleApproveWork(${task.id})">Approve Work</button>
+              <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
+            </div>
+          `;
+        } else if (status === 'partial_complete') {
+          actionButtons = `
+            <div class="actions">
+              <button class="btn-action btn-upload" onclick="handleUploadInvoice(${task.id})">Upload Invoice</button>
+              <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
+            </div>
+          `;
+        } else if (status === 'completed' && task.invoice_url) {
+          actionButtons = `
+            <div class="actions">
+              <button class="btn-action btn-download" onclick="window.open('${task.invoice_url}', '_blank')">Download Invoice</button>
+              <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
+            </div>
+          `;
+        }
+
+        actionsCell.innerHTML = actionButtons;
 
         row.appendChild(titleCell);
         row.appendChild(assigneeCell);
@@ -524,9 +561,22 @@
     }
 
     function getTaskStatus(task) {
-      if (task.status && task.status.toLowerCase() === 'completed') return 'completed';
+      const status = String(task.status || '').trim().toLowerCase();
+      if (status === 'done') return 'done';
+      if (status === 'partial_complete') return 'partial_complete';
+      if (status === 'completed') return 'completed';
+      if (status === 'pending') return 'pending';
       if (isOverdue(task)) return 'overdue';
       return 'pending';
+    }
+
+    function getStatusMeta(task) {
+      const status = getTaskStatus(task);
+      if (status === 'done') return { label: 'Pending Approval', className: 'done' };
+      if (status === 'partial_complete') return { label: 'Approved - Awaiting Payment', className: 'partial_complete' };
+      if (status === 'completed') return { label: 'Completed', className: 'completed' };
+      if (status === 'overdue') return { label: 'Overdue', className: 'overdue' };
+      return { label: 'Pending', className: 'pending' };
     }
 
     function isOverdue(task) {
@@ -548,6 +598,61 @@
     function handleEdit(taskId) {
       localStorage.setItem('edit_task_id', taskId);
       window.location.href = 'create-task.html';
+    }
+
+    async function handleApproveWork(taskId) {
+      try {
+        const res = await fetch(`/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'partial_complete' })
+        });
+        if (!res.ok) throw new Error('Unable to approve task');
+        loadData();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function handleUploadInvoice(taskId) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,application/pdf';
+      input.onchange = async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+          alert('Please choose a PDF file.');
+          return;
+        }
+
+        try {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const base64 = reader.result.split(',')[1];
+            const res = await fetch(`/tasks/${taskId}/upload-invoice`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fileName: file.name,
+                fileData: base64,
+                contentType: file.type || 'application/pdf'
+              })
+            });
+
+            if (!res.ok) {
+              const payload = await res.json().catch(() => ({}));
+              throw new Error(payload.error || 'Unable to upload invoice');
+            }
+
+            loadData();
+          };
+          reader.readAsDataURL(file);
+        } catch (err) {
+          alert(err.message);
+        }
+      };
+      input.click();
     }
 
     async function handleDelete(taskId) {

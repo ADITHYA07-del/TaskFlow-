@@ -104,7 +104,7 @@ app.post('/tasks', async (req, res) => {
     const { title, description, assigned_to, created_by, due_date, priority } = req.body;
     const { data, error } = await supabase
       .from('tasks')
-      .insert([{ title, description, assigned_to, created_by, due_date, priority }])
+      .insert([{ title, description, assigned_to, created_by, due_date, priority, status: 'pending' }])
       .select()
       .single();
 
@@ -189,24 +189,76 @@ app.get('/tasks/my', async (req, res) => {
   }
 });
 
-// PUT /tasks/:id - receives status, updates status, returns updated task
+// PUT /tasks/:id - accepts status and/or invoice_url and updates only provided fields
 app.put('/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-    if (status === undefined) {
-      return res.status(400).json({ error: 'status is required' });
+    const { status, invoice_url } = req.body;
+    const updates = {};
+
+    if (status !== undefined) updates.status = status;
+    if (invoice_url !== undefined) updates.invoice_url = invoice_url;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Provide at least one field to update' });
     }
 
     const { data, error } = await supabase
       .from('tasks')
-      .update({ status })
+      .update(updates)
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /tasks/:id/upload-invoice - uploads a PDF to storage and marks the task completed
+app.post('/tasks/:id/upload-invoice', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fileName, fileData, contentType = 'application/pdf' } = req.body;
+
+    if (!fileName || !fileData) {
+      return res.status(400).json({ error: 'fileName and fileData are required' });
+    }
+
+    const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `${id}/${Date.now()}-${safeName}`;
+    const buffer = Buffer.from(fileData, 'base64');
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('invoices')
+      .upload(storagePath, buffer, {
+        contentType,
+        upsert: true
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: publicData } = supabase.storage
+      .from('invoices')
+      .getPublicUrl(uploadData.path);
+
+    const invoiceUrl = publicData?.publicUrl;
+
+    if (!invoiceUrl) {
+      return res.status(500).json({ error: 'Unable to generate invoice URL' });
+    }
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ status: 'completed', invoice_url: invoiceUrl })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ task: data, invoiceUrl });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
