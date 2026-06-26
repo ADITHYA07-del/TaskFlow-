@@ -510,7 +510,7 @@
         assigneeCell.textContent = assigneeName;
 
         const statusCell = document.createElement('td');
-        const status = getTaskStatus(task);
+        const taskStatus = getTaskStatus(task);
         const statusMeta = getStatusMeta(task);
         statusCell.innerHTML = `<span class="badge badge-${statusMeta.className}">${statusMeta.label}</span>`;
 
@@ -518,7 +518,6 @@
         dueCell.textContent = formatDate(task.due_date);
 
         const actionsCell = document.createElement('td');
-        const status = getTaskStatus(task);
         let actionButtons = `
           <div class="actions">
             <button class="btn-action btn-edit" onclick="handleEdit(${task.id})">Edit</button>
@@ -526,21 +525,21 @@
           </div>
         `;
 
-        if (status === 'done') {
+        if (taskStatus === 'done') {
           actionButtons = `
             <div class="actions">
               <button class="btn-action btn-approve" onclick="handleApproveWork(${task.id})">Approve Work</button>
               <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
             </div>
           `;
-        } else if (status === 'partial_complete') {
+        } else if (taskStatus === 'partial_complete') {
           actionButtons = `
             <div class="actions">
               <button class="btn-action btn-upload" onclick="handleUploadInvoice(${task.id})">Upload Invoice</button>
               <button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>
             </div>
           `;
-        } else if (status === 'completed' && task.invoice_url) {
+        } else if (taskStatus === 'completed' && task.invoice_url) {
           actionButtons = `
             <div class="actions">
               <button class="btn-action btn-download" onclick="window.open('${task.invoice_url}', '_blank')">Download Invoice</button>
@@ -561,11 +560,11 @@
     }
 
     function getTaskStatus(task) {
-      const status = String(task.status || '').trim().toLowerCase();
-      if (status === 'done') return 'done';
-      if (status === 'partial_complete') return 'partial_complete';
-      if (status === 'completed') return 'completed';
-      if (status === 'pending') return 'pending';
+      const normalizedStatus = String(task.status || '').trim().toLowerCase();
+      if (normalizedStatus === 'done') return 'done';
+      if (normalizedStatus === 'partial_complete') return 'partial_complete';
+      if (normalizedStatus === 'completed') return 'completed';
+      if (normalizedStatus === 'pending') return 'pending';
       if (isOverdue(task)) return 'overdue';
       return 'pending';
     }
