@@ -301,14 +301,15 @@
         // Save user to localStorage
         localStorage.setItem('taskflow_user', JSON.stringify(result));
         
-        // Redirect based on role
         if (result.role === 'manager') {
           window.location.href = 'dashboard.html';
-        } else if (result.role === 'employee') {
-          window.location.href = 'my-tasks.html';
-        } else {
-          throw new Error('Unknown user role: ' + result.role);
+          return;
         }
+        if (result.role === 'employee') {
+          window.location.href = 'my-tasks.html';
+          return;
+        }
+        throw new Error('Unknown user role: ' + result.role);
         
       } catch (err) {
         console.error('Login error:', err);

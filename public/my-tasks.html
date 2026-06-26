@@ -321,31 +321,13 @@
   <script>
     let currentUser = null;
 
-    (function checkAuth() {
-      const userStr = localStorage.getItem('taskflow_user');
-      if (!userStr) {
-        window.location.href = 'index.html';
-        return;
-      }
-
-      try {
-        currentUser = JSON.parse(userStr);
-        if (!currentUser || !currentUser.role) {
-          throw new Error('Invalid session');
-        }
-
-        if (currentUser.role !== 'employee') {
-          window.location.href = 'dashboard.html';
-          return;
-        }
-
-        document.getElementById('pageContent').style.display = 'flex';
-      } catch (err) {
-        console.error(err);
-        localStorage.removeItem('taskflow_user');
-        window.location.href = 'index.html';
-      }
-    })();
+    const user = JSON.parse(localStorage.getItem('taskflow_user'));
+    if (!user) window.location.href = 'index.html';
+    if (user && user.role === 'manager') window.location.href = 'dashboard.html';
+    if (user && user.role === 'employee') {
+      currentUser = user;
+      document.getElementById('pageContent').style.display = 'flex';
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       if (!currentUser) return;

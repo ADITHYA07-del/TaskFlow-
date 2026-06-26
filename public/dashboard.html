@@ -534,37 +534,15 @@
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // AUTHENTICATION CHECK
-    // -------------------------------------------------------------
     let currentUser = null;
 
-    (function checkAuth() {
-      const userStr = localStorage.getItem('taskflow_user');
-      if (!userStr) {
-        window.location.href = 'index.html';
-        return;
-      }
-      
-      try {
-        currentUser = JSON.parse(userStr);
-        if (!currentUser || !currentUser.role) {
-          throw new Error('Invalid authentication session');
-        }
-        
-        if (currentUser.role === 'employee') {
-          window.location.href = 'my-tasks.html';
-          return;
-        }
-        
-        // Render dashboard elements if manager
-        document.getElementById('dashboardContent').style.display = 'flex';
-      } catch (err) {
-        console.error('Session validation error:', err);
-        localStorage.removeItem('taskflow_user');
-        window.location.href = 'index.html';
-      }
-    })();
+    const user = JSON.parse(localStorage.getItem('taskflow_user'));
+    if (!user) window.location.href = 'index.html';
+    if (user && user.role === 'employee') window.location.href = 'my-tasks.html';
+    if (user && user.role !== 'employee') {
+      currentUser = user;
+      document.getElementById('dashboardContent').style.display = 'flex';
+    }
 
     // -------------------------------------------------------------
     // DYNAMIC ACTIONS & DOM INITIALIZATION
