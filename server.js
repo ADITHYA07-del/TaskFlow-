@@ -8,6 +8,11 @@ const supabase = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+function isManagerRequest(req) {
+  const role = req.body?.current_user_role || req.query?.current_user_role || req.headers['x-user-role'];
+  return role === 'manager' || role === 'admin';
+}
+
 // Middleware
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -40,7 +45,7 @@ app.post('/register', async (req, res) => {
 
     const { data, error } = await supabase
       .from('users')
-      .insert([{ name, email, password, role }])
+      .insert([{ name, email, password, role, status: 'pending' }])
       .select()
       .single();
 
@@ -69,6 +74,12 @@ app.post('/login', async (req, res) => {
     if (!data) {
       return res.status(404).json({ error: 'User not found' });
     }
+    if (data.status === 'pending') {
+      return res.status(403).json({ error: 'Account pending approval. Contact admin.' });
+    }
+    if (data.status === 'rejected') {
+      return res.status(403).json({ error: 'Account rejected. Contact admin.' });
+    }
     if (data.password !== password) {
       return res.status(401).json({ error: 'Wrong password' });
     }
@@ -79,16 +90,74 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// GET /users - returns all users where role = 'employee'
+// GET /users - returns all users by default, or only active employees when status=active
 app.get('/users', async (req, res) => {
   try {
+    const { status } = req.query;
+    let query = supabase.from('users').select('*').order('id', { ascending: true });
+
+    if (status === 'active') {
+      query = query.eq('status', 'active').eq('role', 'employee');
+    } else if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /users/:id - manager only; updates role and/or status
+app.put('/users/:id', async (req, res) => {
+  try {
+    if (!isManagerRequest(req)) {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    const { id } = req.params;
+    const { role, status } = req.body;
+    const updates = {};
+
+    if (role !== undefined) updates.role = role;
+    if (status !== undefined) updates.status = status;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Provide at least one field to update' });
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .select('*')
-      .eq('role', 'employee');
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) throw error;
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /users/:id - manager only
+app.delete('/users/:id', async (req, res) => {
+  try {
+    if (!isManagerRequest(req)) {
+      return res.status(403).json({ error: 'Manager access required' });
+    }
+
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    res.json({ message: 'User deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

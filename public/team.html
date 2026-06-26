@@ -236,35 +236,113 @@
       font-weight: 600;
     }
 
-    .toolbar {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
     }
 
-    .toolbar input,
-    .toolbar select {
-      padding: 0.8rem 0.95rem;
-      border-radius: 10px;
+    .user-card {
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border-color);
-      background: rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .user-card .user-name {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .user-card .user-email,
+    .user-card .user-role {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      width: fit-content;
+      padding: 0.28rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      border: 1px solid transparent;
+    }
+
+    .pill.pending {
+      background: var(--warning-soft);
+      color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .pill.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent-border);
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+
+    .btn-approve {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+
+    .btn-reject,
+    .btn-delete {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fda4af;
+      border: none;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+
+    .btn-role {
+      background: var(--info-soft);
+      color: var(--info);
+      border: none;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+
+    .btn-role-select {
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: rgba(255,255,255,0.04);
       color: var(--text-main);
       font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      min-width: 110px;
     }
 
-    .toolbar input {
-      flex: 1;
-      min-width: 220px;
-    }
-
-    .toolbar input:focus,
-    .toolbar select:focus {
-      border-color: rgba(76, 175, 80, 0.4);
-      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
+    .empty-state {
+      padding: 1rem;
+      color: var(--text-muted);
+      border: 1px dashed var(--border-color);
+      border-radius: 14px;
+      text-align: center;
     }
 
     .btn-primary {
@@ -493,15 +571,15 @@
         </div>
         <div class="stat-card">
           <div>
-            <div class="stat-label">Managers</div>
-            <div class="stat-value" id="statManagers">0</div>
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-value" id="statPending">0</div>
           </div>
-          <div class="stat-icon">🛡️</div>
+          <div class="stat-icon">⏳</div>
         </div>
         <div class="stat-card">
           <div>
-            <div class="stat-label">Employees</div>
-            <div class="stat-value" id="statEmployees">0</div>
+            <div class="stat-label">Active Members</div>
+            <div class="stat-value" id="statActive">0</div>
           </div>
           <div class="stat-icon">💼</div>
         </div>
@@ -509,17 +587,8 @@
 
       <section class="card">
         <div class="card-header">
-          <div class="card-title">Team Directory</div>
+          <div class="card-title">Approval & Management</div>
           <button class="btn-primary" id="addEmployeeBtn">Add Employee</button>
-        </div>
-
-        <div class="toolbar">
-          <input id="searchInput" type="text" placeholder="Search by name or email..." />
-          <select id="roleFilter">
-            <option value="all">All</option>
-            <option value="manager">Manager</option>
-            <option value="employee">Employee</option>
-          </select>
         </div>
 
         <div id="loadingState" class="state">
@@ -527,17 +596,14 @@
           <p>Loading team members...</p>
         </div>
 
-        <div id="tableWrapper" class="table-wrap" style="display:none;">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-              </tr>
-            </thead>
-            <tbody id="teamTableBody"></tbody>
-          </table>
+        <div id="pendingSection" style="display:none; margin-bottom: 1.25rem;">
+          <div class="card-title" style="margin-bottom:0.8rem;">Pending Approval</div>
+          <div id="pendingApprovalList" class="section-grid"></div>
+        </div>
+
+        <div id="activeSection" style="display:none;">
+          <div class="card-title" style="margin-bottom:0.8rem;">Active Members</div>
+          <div id="activeMembersList" class="section-grid"></div>
         </div>
         <div id="statusMessage" class="status-message"></div>
       </section>
@@ -612,8 +678,6 @@
     document.addEventListener('DOMContentLoaded', () => {
       if (!currentUser) return;
       document.getElementById('welcomeMsg').textContent = `Welcome, ${currentUser.name}`;
-      document.getElementById('searchInput').addEventListener('input', renderUsers);
-      document.getElementById('roleFilter').addEventListener('change', renderUsers);
       document.getElementById('addEmployeeBtn').addEventListener('click', openModal);
       document.getElementById('cancelAddBtn').addEventListener('click', closeModal);
       document.getElementById('modalBackdrop').addEventListener('click', (event) => {
@@ -651,7 +715,8 @@
             id: user.id,
             name: user.name || 'Unknown',
             email: user.email || '—',
-            role: user.role || 'employee'
+            role: user.role || 'employee',
+            status: (user.status || 'active').toLowerCase()
           });
         });
 
@@ -660,7 +725,8 @@
             id: currentUser.id,
             name: currentUser.name || 'Unknown',
             email: currentUser.email || '—',
-            role: currentUser.role || 'manager'
+            role: currentUser.role || 'manager',
+            status: 'active'
           });
         }
 
@@ -674,51 +740,71 @@
     }
 
     function renderUsers() {
-      const search = document.getElementById('searchInput').value.trim().toLowerCase();
-      const roleFilter = document.getElementById('roleFilter').value;
-      const tableBody = document.getElementById('teamTableBody');
+      const pendingList = document.getElementById('pendingApprovalList');
+      const activeList = document.getElementById('activeMembersList');
       const loadingState = document.getElementById('loadingState');
-      const tableWrapper = document.getElementById('tableWrapper');
+      const pendingSection = document.getElementById('pendingSection');
+      const activeSection = document.getElementById('activeSection');
 
-      const filtered = allUsers.filter((user) => {
-        const matchesRole = roleFilter === 'all' || (user.role || '').toLowerCase() === roleFilter;
-        const haystack = `${user.name || ''} ${user.email || ''}`.toLowerCase();
-        const matchesSearch = !search || haystack.includes(search);
-        return matchesRole && matchesSearch;
-      });
+      const pendingUsers = allUsers.filter((user) => user.status === 'pending');
+      const activeUsers = allUsers.filter((user) => user.status === 'active');
 
-      updateStats(filtered);
-
-      if (!filtered.length) {
-        loadingState.style.display = 'block';
-        tableWrapper.style.display = 'none';
-        loadingState.innerHTML = '<div class="state"><h3>No team members found.</h3><p>Try a different search or filter.</p></div>';
-        return;
-      }
+      updateStats(allUsers);
 
       loadingState.style.display = 'none';
-      tableWrapper.style.display = 'block';
-      tableBody.innerHTML = '';
+      pendingSection.style.display = pendingUsers.length ? 'block' : 'none';
+      activeSection.style.display = activeUsers.length ? 'block' : 'none';
 
-      filtered.forEach((user) => {
-        const row = document.createElement('tr');
-        const role = (user.role || 'employee').toLowerCase();
-        row.innerHTML = `
-          <td>${escapeHtml(user.name || 'Unknown')}</td>
-          <td>${escapeHtml(user.email || '—')}</td>
-          <td><span class="role-badge ${role}">${escapeHtml(role)}</span></td>
-        `;
-        tableBody.appendChild(row);
-      });
+      pendingList.innerHTML = pendingUsers.length
+        ? pendingUsers.map((user) => renderPendingCard(user)).join('')
+        : '<div class="empty-state">No users pending approval.</div>';
+
+      activeList.innerHTML = activeUsers.length
+        ? activeUsers.map((user) => renderActiveCard(user)).join('')
+        : '<div class="empty-state">No active members yet.</div>';
+    }
+
+    function renderPendingCard(user) {
+      return `
+        <div class="user-card">
+          <div class="user-name">${escapeHtml(user.name || 'Unknown')}</div>
+          <div class="user-email">${escapeHtml(user.email || '—')}</div>
+          <div class="user-role">Role: ${escapeHtml((user.role || 'employee').toLowerCase())}</div>
+          <span class="pill pending">Pending</span>
+          <div class="actions-row">
+            <button class="btn-approve" onclick="approveUser(${user.id})">Approve</button>
+            <button class="btn-reject" onclick="rejectUser(${user.id})">Reject</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderActiveCard(user) {
+      const role = (user.role || 'employee').toLowerCase();
+      return `
+        <div class="user-card">
+          <div class="user-name">${escapeHtml(user.name || 'Unknown')}</div>
+          <div class="user-email">${escapeHtml(user.email || '—')}</div>
+          <div class="user-role">Role: ${escapeHtml(role)}</div>
+          <span class="pill active">Active</span>
+          <div class="actions-row">
+            <select class="btn-role-select" onchange="changeUserRole(${user.id}, this.value)">
+              <option value="employee" ${role === 'employee' ? 'selected' : ''}>Employee</option>
+              <option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option>
+            </select>
+            <button class="btn-delete" onclick="deleteUser(${user.id})">Delete</button>
+          </div>
+        </div>
+      `;
     }
 
     function updateStats(users) {
       const total = users.length;
-      const managers = users.filter((user) => (user.role || '').toLowerCase() === 'manager').length;
-      const employees = total - managers;
+      const pending = users.filter((user) => user.status === 'pending').length;
+      const active = users.filter((user) => user.status === 'active').length;
       document.getElementById('statTotal').textContent = total;
-      document.getElementById('statManagers').textContent = managers;
-      document.getElementById('statEmployees').textContent = employees;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statActive').textContent = active;
     }
 
     function openModal() {
@@ -759,8 +845,76 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Unable to add employee.');
 
-        showStatus('Employee added successfully.', false);
+        showStatus('Employee added successfully and is pending approval.', false);
         closeModal();
+        await loadUsers();
+      } catch (err) {
+        console.error(err);
+        showStatus(err.message, true);
+      }
+    }
+
+    async function approveUser(userId) {
+      try {
+        const res = await fetch(`/users/${userId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'active', current_user_role: currentUser.role })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Unable to approve user.');
+        showStatus('User approved successfully.', false);
+        await loadUsers();
+      } catch (err) {
+        console.error(err);
+        showStatus(err.message, true);
+      }
+    }
+
+    async function rejectUser(userId) {
+      try {
+        const res = await fetch(`/users/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_user_role: currentUser.role })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Unable to reject user.');
+        showStatus('User rejected and removed.', false);
+        await loadUsers();
+      } catch (err) {
+        console.error(err);
+        showStatus(err.message, true);
+      }
+    }
+
+    async function changeUserRole(userId, newRole) {
+      try {
+        const res = await fetch(`/users/${userId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole, status: 'active', current_user_role: currentUser.role })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Unable to update role.');
+        showStatus('Role updated successfully.', false);
+        await loadUsers();
+      } catch (err) {
+        console.error(err);
+        showStatus(err.message, true);
+      }
+    }
+
+    async function deleteUser(userId) {
+      try {
+        const res = await fetch(`/users/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_user_role: currentUser.role })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Unable to delete user.');
+        showStatus('User removed successfully.', false);
         await loadUsers();
       } catch (err) {
         console.error(err);
