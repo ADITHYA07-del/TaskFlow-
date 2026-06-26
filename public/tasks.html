@@ -415,7 +415,7 @@
 
       try {
         const [usersRes, tasksRes] = await Promise.all([
-          fetch('/users'),
+          fetch('/users?status=active'),
           fetch('/tasks')
         ]);
 

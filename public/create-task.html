@@ -359,7 +359,7 @@
       const banner = document.getElementById('statusBanner');
       try {
         banner.textContent = 'Loading employees…';
-        const res = await fetch('/users');
+        const res = await fetch('/users?status=active');
         if (!res.ok) throw new Error('Unable to load employees');
         const users = await res.json();
         select.innerHTML = '<option value="">Select employee</option>';

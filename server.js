@@ -171,6 +171,21 @@ app.delete('/users/:id', async (req, res) => {
 app.post('/tasks', async (req, res) => {
   try {
     const { title, description, assigned_to, created_by, due_date, priority } = req.body;
+    if (!assigned_to) {
+      return res.status(400).json({ error: 'assigned_to is required' });
+    }
+
+    const { data: assignee, error: assigneeError } = await supabase
+      .from('users')
+      .select('id, status, role')
+      .eq('id', assigned_to)
+      .maybeSingle();
+
+    if (assigneeError) throw assigneeError;
+    if (!assignee || assignee.status !== 'active' || assignee.role !== 'employee') {
+      return res.status(400).json({ error: 'Tasks can only be assigned to active employees' });
+    }
+
     const { data, error } = await supabase
       .from('tasks')
       .insert([{ title, description, assigned_to, created_by, due_date, priority, status: 'pending' }])

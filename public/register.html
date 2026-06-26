@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaskFlow - Login</title>
+  <title>TaskFlow - Create Account</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
-      background-image: 
+      background-image:
         radial-gradient(circle at 10% 20%, rgba(76, 175, 80, 0.08) 0%, transparent 40%),
         radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 40%);
       background-attachment: fixed;
@@ -121,7 +121,8 @@
       position: relative;
     }
 
-    input {
+    input,
+    select {
       width: 100%;
       padding: 0.85rem 1rem;
       background: var(--input-bg);
@@ -134,13 +135,28 @@
       transition: all 0.3s ease;
     }
 
-    input:focus {
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      padding-right: 2.5rem;
+    }
+
+    select option {
+      background: #16213e;
+      color: var(--text-main);
+    }
+
+    input:focus,
+    select:focus {
       border-color: var(--accent-green);
       box-shadow: 0 0 12px rgba(76, 175, 80, 0.15);
       background: rgba(15, 23, 42, 0.8);
     }
 
-    .btn-login {
+    .btn-register {
       width: 100%;
       padding: 0.9rem;
       background: linear-gradient(135deg, var(--accent-green), #66bb6a);
@@ -156,16 +172,22 @@
       margin-top: 1rem;
     }
 
-    .btn-login:hover {
+    .btn-register:hover {
       transform: translateY(-2px);
       box-shadow: 0 12px 24px rgba(76, 175, 80, 0.4);
     }
 
-    .btn-login:active {
+    .btn-register:active {
       transform: translateY(0);
     }
 
-    .error-container {
+    .btn-register:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message-container {
       min-height: 24px;
       margin-top: 1rem;
       display: flex;
@@ -173,12 +195,20 @@
       justify-content: center;
     }
 
-    .error-msg {
-      color: var(--danger);
+    .message {
       font-size: 0.9rem;
       font-weight: 500;
       display: none;
+      text-align: center;
+    }
+
+    .message.error {
+      color: var(--danger);
       animation: shake 0.4s ease-in-out;
+    }
+
+    .message.success {
+      color: var(--accent-green);
     }
 
     @keyframes shake {
@@ -219,10 +249,17 @@
     <div class="logo-container">
       <div class="logo-icon">✅</div>
       <h1>TaskFlow</h1>
-      <p class="subtitle">Task Management System</p>
+      <p class="subtitle">Create Account</p>
     </div>
 
-    <form id="loginForm" onsubmit="handleLogin(event)">
+    <form id="registerForm" onsubmit="handleRegister(event)">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <div class="input-wrapper">
+          <input type="text" id="name" required placeholder="John Doe" autocomplete="name">
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="email">Email Address</label>
         <div class="input-wrapper">
@@ -233,18 +270,28 @@
       <div class="form-group">
         <label for="password">Password</label>
         <div class="input-wrapper">
-          <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+          <input type="password" id="password" required placeholder="••••••••" autocomplete="new-password">
         </div>
       </div>
 
-      <button type="submit" class="btn-login">Sign In</button>
+      <div class="form-group">
+        <label for="role">Role</label>
+        <div class="input-wrapper">
+          <select id="role" required>
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
+          </select>
+        </div>
+      </div>
 
-      <div class="error-container">
-        <div id="errorMsg" class="error-msg"></div>
+      <button type="submit" class="btn-register">Register</button>
+
+      <div class="message-container">
+        <div id="statusMsg" class="message"></div>
       </div>
     </form>
 
-    <p class="auth-link">Don't have an account? <a href="register.html">Create Account</a></p>
+    <p class="auth-link">Already have account? <a href="index.html">Login</a></p>
   </div>
 
   <footer>
@@ -252,76 +299,62 @@
   </footer>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      try {
-        const savedUser = JSON.parse(localStorage.getItem('taskflow_user') || 'null');
-        if (savedUser && savedUser.role === 'manager') {
-          window.location.replace('dashboard.html');
-        } else if (savedUser && savedUser.role === 'employee') {
-          window.location.replace('my-tasks.html');
-        }
-      } catch (err) {
-        console.error('Session redirect error:', err);
-      }
-    });
-
-    async function handleLogin(event) {
+    async function handleRegister(event) {
       event.preventDefault();
-      
+
+      const nameInput = document.getElementById('name');
       const emailInput = document.getElementById('email');
       const passwordInput = document.getElementById('password');
-      const errorMsg = document.getElementById('errorMsg');
-      const loginBtn = document.querySelector('.btn-login');
-      
-      // Reset state
-      errorMsg.style.display = 'none';
-      errorMsg.textContent = '';
-      
+      const roleInput = document.getElementById('role');
+      const statusMsg = document.getElementById('statusMsg');
+      const registerBtn = document.querySelector('.btn-register');
+
+      statusMsg.style.display = 'none';
+      statusMsg.textContent = '';
+      statusMsg.className = 'message';
+
+      const name = nameInput.value.trim();
       const email = emailInput.value.trim();
       const password = passwordInput.value;
+      const role = roleInput.value;
 
       try {
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Signing In...';
-        
-        const response = await fetch('/login', {
+        registerBtn.disabled = true;
+        registerBtn.textContent = 'Registering...';
+
+        const response = await fetch('/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ name, email, password, role })
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
-          throw new Error(result.error || 'Authentication failed');
+          throw new Error(result.error || 'Registration failed');
         }
-        
-        // Save user to localStorage
-        localStorage.setItem('taskflow_user', JSON.stringify(result));
-        
-        // Redirect based on role
-        if (result.role === 'manager') {
-          window.location.href = 'dashboard.html';
-        } else if (result.role === 'employee') {
-          window.location.href = 'my-tasks.html';
-        } else {
-          throw new Error('Unknown user role: ' + result.role);
-        }
-        
+
+        statusMsg.textContent = 'Account created! Wait for admin approval.';
+        statusMsg.className = 'message success';
+        statusMsg.style.display = 'block';
+
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 3000);
       } catch (err) {
-        console.error('Login error:', err);
-        errorMsg.textContent = err.message;
-        errorMsg.style.display = 'block';
-        
-        // Visual shake animation trigger
-        errorMsg.style.animation = 'none';
-        errorMsg.offsetHeight; /* trigger reflow */
-        errorMsg.style.animation = null;
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Sign In';
+        console.error('Registration error:', err);
+        statusMsg.textContent = err.message;
+        statusMsg.className = 'message error';
+        statusMsg.style.display = 'block';
+
+        statusMsg.style.animation = 'none';
+        statusMsg.offsetHeight;
+        statusMsg.style.animation = null;
+
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Register';
       }
     }
   </script>
