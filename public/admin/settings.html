@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Admin Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/layouts/layout.css">
+  <style>
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .page-header p { color: var(--text-muted); margin: 0.25rem 0 1.5rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.2rem; }
+    .card h3 { font-size: 1.1rem; margin-bottom: 0.8rem; }
+    .info-row { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; color: var(--text-muted); font-size: 0.95rem; }
+    .info-row strong { color: var(--text-main); }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.8rem; }
+    .btn-secondary, .btn-danger { border: none; padding: 0.75rem 1rem; border-radius: 10px; font-family: inherit; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-danger { background: rgba(239,68,68,0.14); color: #fda4af; border: 1px solid rgba(239,68,68,0.2); }
+  </style>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <div class="layout-content">
+      <section class="page-header"><h1>Admin Settings</h1><p>Manage your admin account and system preferences.</p></section>
+      <section class="grid">
+        <div class="card">
+          <h3>Profile</h3>
+          <div class="info-row"><span>Name</span><strong id="profileName">—</strong></div>
+          <div class="info-row"><span>Email</span><strong id="profileEmail">—</strong></div>
+          <div class="info-row"><span>Role</span><strong id="profileRole">—</strong></div>
+        </div>
+        <div class="card">
+          <h3>System Overview</h3>
+          <div class="info-row"><span>Total Tasks</span><strong id="totalTasks">—</strong></div>
+          <div class="info-row"><span>Theme</span><strong>Dark Theme</strong></div>
+          <div class="info-row"><span>Version</span><strong>v1.0</strong></div>
+        </div>
+        <div class="card">
+          <h3>Account</h3>
+          <div class="actions">
+            <button class="btn-secondary" onclick="TaskFlowAuth.logout(event)">Logout</button>
+            <button class="btn-danger" onclick="clearSession()">Clear Session</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="/auth.js"></script>
+  <script src="/layouts/admin-layout.js"></script>
+  <script>
+    (async function () {
+      const user = await TaskFlowAuth.guardPage('admin');
+      if (!user) return;
+      AdminLayout.init({ user, active: 'settings' });
+      document.getElementById('profileName').textContent = user.name || '—';
+      document.getElementById('profileEmail').textContent = user.email || '—';
+      document.getElementById('profileRole').textContent = user.role || '—';
+      try {
+        const res = await fetch('/tasks');
+        if (res.ok) {
+          const tasks = await res.json();
+          document.getElementById('totalTasks').textContent = Array.isArray(tasks) ? tasks.length : 0;
+        }
+      } catch {}
+    })();
+
+    function clearSession() {
+      if (!confirm('Clear session and return to login?')) return;
+      TaskFlowAuth.clearAuth();
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

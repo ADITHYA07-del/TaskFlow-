@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - My Tasks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/layouts/layout.css">
+  <style>
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .page-header p { color: var(--text-muted); margin: 0.25rem 0 1.5rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+    .stat-label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.45rem; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .task-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.15rem; display: flex; flex-direction: column; gap: 0.8rem; }
+    .task-card h3 { font-size: 1.05rem; }
+    .task-meta { color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; }
+    .badge { display: inline-block; width: fit-content; padding: 0.28rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; text-transform: capitalize; border: 1px solid transparent; margin-right: 0.35rem; }
+    .badge-high { background: rgba(239,68,68,0.16); color: #fda4af; }
+    .badge-medium { background: rgba(245,158,11,0.16); color: #fcd34d; }
+    .badge-low { background: rgba(76,175,80,0.16); color: #86efac; }
+    .badge-completed { background: rgba(76,175,80,0.16); color: #86efac; }
+    .badge-pending { background: rgba(107,114,128,0.16); color: #d1d5db; }
+    .badge-done { background: rgba(245,158,11,0.16); color: #fcd34d; }
+    .badge-partial_complete { background: rgba(2,132,199,0.16); color: #7dd3fc; }
+    .badge-overdue { background: rgba(239,68,68,0.16); color: #fda4af; }
+    .btn-complete { background: linear-gradient(135deg, var(--accent), #66bb6a); color: white; border: none; padding: 0.7rem 0.9rem; border-radius: 10px; font-family: inherit; font-weight: 600; cursor: pointer; }
+    .state { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 2rem 1rem; text-align: center; color: var(--text-muted); }
+    .spinner { width: 44px; height: 44px; border: 3px solid rgba(76,175,80,0.16); border-left-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 0.8rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <div class="layout-content">
+      <section class="page-header"><h1>My Tasks</h1><p>View your assigned work and mark tasks complete.</p></section>
+      <section class="stats-grid">
+        <div class="stat-card"><div><div class="stat-label">Total Tasks</div><div class="stat-value" id="statTotal">0</div></div><div>📋</div></div>
+        <div class="stat-card"><div><div class="stat-label">Pending</div><div class="stat-value" id="statPending">0</div></div><div>⏳</div></div>
+        <div class="stat-card"><div><div class="stat-label">Completed</div><div class="stat-value" id="statCompleted">0</div></div><div>✅</div></div>
+      </section>
+      <section id="tasksContainer">
+        <div id="loadingState" class="state"><div class="spinner"></div><p>Loading your tasks...</p></div>
+      </section>
+    </div>
+  </div>
+  <script src="/auth.js"></script>
+  <script src="/layouts/member-layout.js"></script>
+  <script>
+    let currentUser = null;
+
+    (async function () {
+      currentUser = await TaskFlowAuth.guardPage('member');
+      if (!currentUser) return;
+      MemberLayout.init({ user: currentUser, active: 'tasks' });
+      loadMyTasks();
+    })();
+
+    async function loadMyTasks() {
+      const container = document.getElementById('tasksContainer');
+      container.innerHTML = '<div class="state"><div class="spinner"></div><p>Loading your tasks...</p></div>';
+      try {
+        const res = await fetch(`/tasks/my?user_id=${currentUser.id}`);
+        if (!res.ok) throw new Error('Unable to load your tasks');
+        const tasks = await res.json();
+        updateStats(tasks);
+        if (!tasks?.length) {
+          container.innerHTML = '<div class="state"><h3>No tasks assigned.</h3><p>You do not have any tasks right now.</p></div>';
+          return;
+        }
+        const grid = document.createElement('div');
+        grid.className = 'task-grid';
+        tasks.forEach(task => {
+          const card = document.createElement('article');
+          card.className = 'task-card';
+          const status = getTaskStatus(task);
+          const statusMeta = getStatusMeta(task);
+          const priority = getPriority(task.priority);
+          card.innerHTML = `
+            <div class="task-meta">
+              <span class="badge badge-${priority.className}">${priority.label}</span>
+              <span class="badge badge-${statusMeta.className}">${statusMeta.label}</span>
+            </div>
+            <h3>${escapeHtml(task.title || 'Untitled Task')}</h3>
+            <p class="task-meta">${escapeHtml(task.description || 'No description provided.')}</p>
+            <div class="task-meta"><strong>Due:</strong> ${formatDate(task.due_date)}</div>
+            ${status === 'pending' ? `<button class="btn-complete" onclick="markAsDone(${task.id})">Mark as Done</button>` : ''}
+          `;
+          grid.appendChild(card);
+        });
+        container.innerHTML = '';
+        container.appendChild(grid);
+      } catch (err) {
+        container.innerHTML = `<div class="state"><h3>Unable to load tasks</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    async function markAsDone(taskId) {
+      const res = await fetch(`/tasks/${taskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'done' }) });
+      if (!res.ok) return alert('Unable to update task');
+      loadMyTasks();
+    }
+
+    function updateStats(tasks) {
+      document.getElementById('statTotal').textContent = tasks.length;
+      document.getElementById('statCompleted').textContent = tasks.filter(t => getTaskStatus(t) === 'completed').length;
+      document.getElementById('statPending').textContent = tasks.filter(t => ['pending','done','partial_complete'].includes(getTaskStatus(t))).length;
+    }
+
+    function getTaskStatus(task) {
+      const s = String(task.status || '').toLowerCase();
+      if (s === 'done') return 'done';
+      if (s === 'partial_complete') return 'partial_complete';
+      if (s === 'completed') return 'completed';
+      if (isOverdue(task)) return 'overdue';
+      return 'pending';
+    }
+
+    function getStatusMeta(task) {
+      const s = getTaskStatus(task);
+      if (s === 'done') return { label: 'Pending Approval', className: 'done' };
+      if (s === 'partial_complete') return { label: 'Approved - Awaiting Payment', className: 'partial_complete' };
+      if (s === 'completed') return { label: 'Completed', className: 'completed' };
+      if (s === 'overdue') return { label: 'Overdue', className: 'overdue' };
+      return { label: 'Pending', className: 'pending' };
+    }
+
+    function getPriority(p) {
+      const v = String(p || '').toLowerCase();
+      if (v === 'high') return { label: 'High', className: 'high' };
+      if (v === 'medium') return { label: 'Medium', className: 'medium' };
+      return { label: 'Low', className: 'low' };
+    }
+
+    function isOverdue(task) {
+      if (!task.due_date || task.status?.toLowerCase() === 'completed') return false;
+      return new Date(task.due_date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0];
+    }
+
+    function formatDate(d) { return d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'; }
+    function escapeHtml(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>

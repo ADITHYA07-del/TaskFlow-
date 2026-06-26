@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Admin Tasks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/layouts/layout.css">
+  <style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .page-header p { color: var(--text-muted); margin-top: 0.25rem; }
+    .btn-create { background: linear-gradient(135deg, var(--accent), #66bb6a); color: white; border: none; padding: 0.8rem 1rem; border-radius: 10px; font-family: inherit; font-weight: 600; cursor: pointer; }
+    .toolbar { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .toolbar input, .toolbar select { padding: 0.75rem; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: var(--text-main); font-family: inherit; min-width: 180px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 1.25rem; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { padding: 0.95rem 0.8rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    th { color: var(--text-muted); font-size: 0.82rem; text-transform: uppercase; }
+    .badge { display: inline-block; padding: 0.28rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; text-transform: capitalize; }
+    .badge-completed { background: rgba(76,175,80,0.15); color: var(--accent); }
+    .badge-pending { background: rgba(107,114,128,0.15); color: #d1d5db; }
+    .badge-done { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-partial_complete { background: rgba(2,132,199,0.15); color: #0284c7; }
+    .badge-overdue { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .actions { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    .btn-action { padding: 0.5rem 0.75rem; border: none; border-radius: 8px; font-family: inherit; font-size: 0.9rem; cursor: pointer; }
+    .btn-edit { background: rgba(2,132,199,0.16); color: #7dd3fc; }
+    .btn-delete { background: rgba(239,68,68,0.15); color: #fda4af; }
+    .btn-approve { background: rgba(245,158,11,0.16); color: #fcd34d; }
+    .btn-upload { background: rgba(2,132,199,0.16); color: #7dd3fc; }
+    .btn-download { background: rgba(76,175,80,0.16); color: #86efac; }
+    .loading-state, .empty-state { display: flex; flex-direction: column; align-items: center; padding: 3rem; color: var(--text-muted); gap: 0.8rem; }
+    .spinner { width: 44px; height: 44px; border: 3px solid rgba(76,175,80,0.16); border-left-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .table-wrap { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <div class="layout-content">
+      <section class="page-header">
+        <div><h1>Tasks</h1><p>Manage team assignments and task progress</p></div>
+        <button class="btn-create" onclick="goToCreateTask()">Create Task</button>
+      </section>
+      <section class="toolbar">
+        <input id="searchInput" type="text" placeholder="Search by title..." />
+        <select id="statusFilter">
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="done">Pending Approval</option>
+          <option value="partial_complete">Approved - Awaiting Payment</option>
+          <option value="completed">Completed</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <select id="employeeFilter"><option value="all">All Employees</option></select>
+      </section>
+      <section class="card">
+        <div id="loadingState" class="loading-state"><div class="spinner"></div><p>Loading tasks...</p></div>
+        <div id="emptyState" class="empty-state" style="display:none;"><h3 id="emptyTitle">No tasks</h3><p id="emptyText">No tasks to display.</p></div>
+        <div id="tableWrapper" class="table-wrap" style="display:none;">
+          <table><thead><tr><th>Title</th><th>Assigned To</th><th>Status</th><th>Due Date</th><th>Actions</th></tr></thead><tbody id="tasksTableBody"></tbody></table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="/auth.js"></script>
+  <script src="/layouts/admin-layout.js"></script>
+  <script>
+    let currentUser = null, allTasks = [], userMap = {};
+
+    (async function () {
+      currentUser = await TaskFlowAuth.guardPage('admin');
+      if (!currentUser) return;
+      AdminLayout.init({ user: currentUser, active: 'tasks' });
+      document.getElementById('searchInput').addEventListener('input', renderTasks);
+      document.getElementById('statusFilter').addEventListener('change', renderTasks);
+      document.getElementById('employeeFilter').addEventListener('change', renderTasks);
+      loadData();
+    })();
+
+    function goToCreateTask() { window.location.href = '/admin/create-task'; }
+
+    async function loadData() {
+      try {
+        const [usersRes, tasksRes] = await Promise.all([fetch('/users?status=active'), fetch('/tasks')]);
+        if (!usersRes.ok || !tasksRes.ok) throw new Error('Failed to load data');
+        const users = await usersRes.json();
+        allTasks = await tasksRes.json();
+        userMap = {};
+        users.forEach(u => { if (u.id) userMap[u.id] = u.name; });
+        const select = document.getElementById('employeeFilter');
+        select.innerHTML = '<option value="all">All Employees</option>';
+        users.forEach(u => { const o = document.createElement('option'); o.value = String(u.id); o.textContent = u.name; select.appendChild(o); });
+        document.getElementById('loadingState').style.display = 'none';
+        renderTasks();
+      } catch (err) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'flex';
+        document.getElementById('emptyTitle').textContent = 'Error';
+        document.getElementById('emptyText').textContent = err.message;
+      }
+    }
+
+    function renderTasks() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      const employeeFilter = document.getElementById('employeeFilter').value;
+      const filtered = allTasks.filter(t => {
+        const matchesSearch = !search || (t.title || '').toLowerCase().includes(search);
+        const matchesStatus = statusFilter === 'all' || getTaskStatus(t) === statusFilter;
+        const matchesEmployee = employeeFilter === 'all' || String(t.assigned_to) === employeeFilter;
+        return matchesSearch && matchesStatus && matchesEmployee;
+      }).sort((a, b) => (b.id || 0) - (a.id || 0));
+      const tableBody = document.getElementById('tasksTableBody');
+      const empty = document.getElementById('emptyState');
+      const wrapper = document.getElementById('tableWrapper');
+      if (!filtered.length) { empty.style.display = 'flex'; wrapper.style.display = 'none'; return; }
+      empty.style.display = 'none'; wrapper.style.display = 'block';
+      tableBody.innerHTML = filtered.map(task => {
+        const meta = getStatusMeta(task);
+        const status = getTaskStatus(task);
+        let actions = `<button class="btn-action btn-edit" onclick="handleEdit(${task.id})">Edit</button><button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>`;
+        if (status === 'done') actions = `<button class="btn-action btn-approve" onclick="handleApproveWork(${task.id})">Approve Work</button><button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>`;
+        else if (status === 'partial_complete') actions = `<button class="btn-action btn-upload" onclick="handleUploadInvoice(${task.id})">Upload Invoice</button><button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>`;
+        else if (status === 'completed' && task.invoice_url) actions = `<button class="btn-action btn-download" onclick="window.open('${task.invoice_url}','_blank')">Download Invoice</button><button class="btn-action btn-delete" onclick="handleDelete(${task.id})">Delete</button>`;
+        return `<tr><td>${escapeHtml(task.title || 'Untitled')}</td><td>${escapeHtml(userMap[task.assigned_to] || 'N/A')}</td><td><span class="badge badge-${meta.className}">${meta.label}</span></td><td>${formatDate(task.due_date)}</td><td><div class="actions">${actions}</div></td></tr>`;
+      }).join('');
+    }
+
+    function getTaskStatus(task) {
+      const s = String(task.status || '').toLowerCase();
+      if (s === 'done') return 'done';
+      if (s === 'partial_complete') return 'partial_complete';
+      if (s === 'completed') return 'completed';
+      if (isOverdue(task)) return 'overdue';
+      return 'pending';
+    }
+
+    function getStatusMeta(task) {
+      const s = getTaskStatus(task);
+      if (s === 'done') return { label: 'Pending Approval', className: 'done' };
+      if (s === 'partial_complete') return { label: 'Approved - Awaiting Payment', className: 'partial_complete' };
+      if (s === 'completed') return { label: 'Completed', className: 'completed' };
+      if (s === 'overdue') return { label: 'Overdue', className: 'overdue' };
+      return { label: 'Pending', className: 'pending' };
+    }
+
+    function isOverdue(task) {
+      if (!task.due_date || task.status?.toLowerCase() === 'completed') return false;
+      return new Date(task.due_date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0];
+    }
+
+    function formatDate(d) { return d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'; }
+    function escapeHtml(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function handleEdit(id) { localStorage.setItem('edit_task_id', id); window.location.href = '/admin/create-task'; }
+
+    async function handleApproveWork(id) {
+      const res = await fetch(`/tasks/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'partial_complete' }) });
+      if (!res.ok) return alert('Unable to approve task');
+      loadData();
+    }
+
+    async function handleUploadInvoice(id) {
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = '.pdf,application/pdf';
+      input.onchange = async () => {
+        const file = input.files?.[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const res = await fetch(`/tasks/${id}/upload-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileName: file.name, fileData: reader.result.split(',')[1], contentType: file.type || 'application/pdf' }) });
+          if (!res.ok) return alert('Upload failed');
+          loadData();
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    }
+
+    async function handleDelete(id) {
+      if (!confirm('Delete this task?')) return;
+      const res = await fetch(`/tasks/${id}`, { method: 'DELETE' });
+      if (!res.ok) return alert('Unable to delete');
+      allTasks = allTasks.filter(t => t.id !== id);
+      renderTasks();
+    }
+  </script>
+</body>
+</html>

@@ -13,11 +13,95 @@ function isManagerRequest(req) {
   return role === 'manager' || role === 'admin';
 }
 
+function sanitizeUserRecord(user) {
+  if (!user) return null;
+  const { password, ...safe } = user;
+  return safe;
+}
+
 // Middleware
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
+
+// ==========================================
+// ROLE-BASED PAGE ROUTES (clean URLs)
+// ==========================================
+
+const adminPages = ['dashboard', 'tasks', 'team', 'settings', 'create-task'];
+adminPages.forEach((page) => {
+  app.get(`/admin/${page}`, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin', `${page}.html`));
+  });
+});
+
+app.get('/admin', (req, res) => res.redirect('/admin/dashboard'));
+
+const memberPages = ['tasks', 'settings'];
+memberPages.forEach((page) => {
+  app.get(`/member/${page}`, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'member', `${page}.html`));
+  });
+});
+
+app.get('/member', (req, res) => res.redirect('/member/tasks'));
+
+const legacyRedirects = {
+  '/dashboard.html': '/admin/dashboard',
+  '/tasks.html': '/admin/tasks',
+  '/team.html': '/admin/team',
+  '/create-task.html': '/admin/create-task',
+  '/my-tasks.html': '/member/tasks',
+  '/settings.html': '/index.html'
+};
+
+Object.entries(legacyRedirects).forEach(([from, to]) => {
+  app.get(from, (req, res) => res.redirect(301, to));
+});
+
+// ==========================================
+// ROLE-BASED APP ROUTES (clean URLs)
+// ==========================================
+
+const adminPages = {
+  dashboard: 'dashboard.html',
+  tasks: 'tasks.html',
+  team: 'team.html',
+  settings: 'settings.html',
+  'create-task': 'create-task.html'
+};
+
+Object.entries(adminPages).forEach(([route, file]) => {
+  app.get(`/admin/${route}`, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin', file));
+  });
+});
+
+app.get('/admin', (req, res) => res.redirect(302, '/admin/dashboard'));
+
+app.get('/member/tasks', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'member', 'tasks.html'));
+});
+
+app.get('/member/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'member', 'settings.html'));
+});
+
+app.get('/member', (req, res) => res.redirect(302, '/member/tasks'));
+
+// Legacy route redirects (old flat HTML structure)
+const legacyRedirects = {
+  '/dashboard.html': '/admin/dashboard',
+  '/tasks.html': '/admin/tasks',
+  '/team.html': '/admin/team',
+  '/my-tasks.html': '/member/tasks',
+  '/create-task.html': '/admin/create-task'
+};
+
+Object.entries(legacyRedirects).forEach(([from, to]) => {
+  app.get(from, (req, res) => res.redirect(302, to));
+});
 
 // Serve static files from the public folder
 app.use(express.static(path.join(__dirname, 'public')));
@@ -84,7 +168,39 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Wrong password' });
     }
 
-    res.json(data);
+    res.json(sanitizeUserRecord(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /auth/me - returns fresh user profile for session validation (no password)
+app.get('/auth/me', async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id query parameter is required' });
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, role, status')
+      .eq('id', user_id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (data.status === 'pending') {
+      return res.status(403).json({ error: 'Account pending approval' });
+    }
+    if (data.status === 'rejected') {
+      return res.status(403).json({ error: 'Account rejected' });
+    }
+
+    res.set('Cache-Control', 'no-store');
+    res.json(sanitizeUserRecord(data));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

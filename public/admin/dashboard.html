@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/layouts/layout.css">
+  <style>
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+    .stat-info h3 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .stat-value { font-size: 2.25rem; font-weight: 700; }
+    .stat-icon { font-size: 1.5rem; }
+    .content-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 2rem; }
+    .card-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 1.5rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+    th { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+    .badge-status { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; text-transform: capitalize; }
+    .status-completed { background: rgba(76,175,80,0.15); color: var(--accent); }
+    .status-pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .status-overdue { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .loading-state, .empty-state { display: flex; flex-direction: column; align-items: center; padding: 3rem; text-align: center; color: var(--text-muted); gap: 1rem; }
+    .spinner { width: 48px; height: 48px; border: 3px solid rgba(76,175,80,0.1); border-left-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .page-header p { color: var(--text-muted); margin-bottom: 2rem; }
+  </style>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <div class="layout-content">
+      <div class="page-header">
+        <h1>Admin Dashboard</h1>
+        <p>Overview of team tasks and activity</p>
+      </div>
+      <section class="stats-grid">
+        <div class="stat-card"><div class="stat-info"><h3>Total Tasks</h3><div class="stat-value" id="statTotal">-</div></div><div class="stat-icon">📂</div></div>
+        <div class="stat-card"><div class="stat-info"><h3>Completed</h3><div class="stat-value" id="statCompleted">-</div></div><div class="stat-icon">✔️</div></div>
+        <div class="stat-card"><div class="stat-info"><h3>Pending</h3><div class="stat-value" id="statPending">-</div></div><div class="stat-icon">⏳</div></div>
+        <div class="stat-card"><div class="stat-info"><h3>Overdue</h3><div class="stat-value" id="statOverdue">-</div></div><div class="stat-icon">⚠️</div></div>
+      </section>
+      <section class="content-card">
+        <h3 class="card-title">Recent Tasks</h3>
+        <div id="loadingState" class="loading-state"><div class="spinner"></div><p>Loading dashboard...</p></div>
+        <div id="emptyState" class="empty-state" style="display:none;"><h3 id="emptyTitle">No tasks found</h3><p id="emptyText">There are no tasks in the system.</p></div>
+        <div id="tableWrapper" style="display:none; overflow-x:auto;">
+          <table><thead><tr><th>Title</th><th>Assigned To</th><th>Status</th><th>Due Date</th></tr></thead><tbody id="tasksTableBody"></tbody></table>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="/auth.js"></script>
+  <script src="/layouts/admin-layout.js"></script>
+  <script>
+    let userMap = {};
+    (async function () {
+      const user = await TaskFlowAuth.guardPage('admin');
+      if (!user) return;
+      AdminLayout.init({ user, active: 'dashboard' });
+      loadDashboard();
+    })();
+
+    async function loadDashboard() {
+      const loading = document.getElementById('loadingState');
+      const empty = document.getElementById('emptyState');
+      const tableWrapper = document.getElementById('tableWrapper');
+      const tableBody = document.getElementById('tasksTableBody');
+      try {
+        const [usersRes, tasksRes] = await Promise.all([fetch('/users'), fetch('/tasks')]);
+        if (!usersRes.ok || !tasksRes.ok) throw new Error('Failed to load dashboard data');
+        const users = await usersRes.json();
+        const tasks = await tasksRes.json();
+        userMap = {};
+        users.forEach(u => { if (u.id) userMap[u.id] = u.name; });
+        calculateStats(tasks);
+        if (!tasks.length) {
+          loading.style.display = 'none';
+          empty.style.display = 'flex';
+          return;
+        }
+        tasks.sort((a, b) => (b.id || 0) - (a.id || 0));
+        tableBody.innerHTML = tasks.slice(0, 10).map(task => {
+          const overdue = isOverdue(task);
+          let status = task.status || 'pending';
+          let cls = 'status-pending';
+          if (status.toLowerCase() === 'completed') cls = 'status-completed';
+          else if (overdue) { status = 'overdue'; cls = 'status-overdue'; }
+          const name = userMap[task.assigned_to] || 'Unassigned';
+          return `<tr><td>${escapeHtml(task.title)}</td><td>${escapeHtml(name)}</td><td><span class="badge-status ${cls}">${status}</span></td><td>${formatDate(task.due_date)}</td></tr>`;
+        }).join('');
+        loading.style.display = 'none';
+        tableWrapper.style.display = 'block';
+      } catch (err) {
+        loading.style.display = 'none';
+        empty.style.display = 'flex';
+        document.getElementById('emptyTitle').textContent = 'Error';
+        document.getElementById('emptyText').textContent = err.message;
+      }
+    }
+
+    function calculateStats(tasks) {
+      let completed = 0, pending = 0, overdue = 0;
+      tasks.forEach(t => {
+        if (t.status?.toLowerCase() === 'completed') completed++;
+        else { pending++; if (isOverdue(t)) overdue++; }
+      });
+      document.getElementById('statTotal').textContent = tasks.length;
+      document.getElementById('statCompleted').textContent = completed;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statOverdue').textContent = overdue;
+    }
+
+    function isOverdue(task) {
+      if (!task.due_date || task.status?.toLowerCase() === 'completed') return false;
+      return new Date(task.due_date).toISOString().split('T')[0] < new Date().toISOString().split('T')[0];
+    }
+
+    function formatDate(d) {
+      if (!d) return 'N/A';
+      return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(v) {
+      return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

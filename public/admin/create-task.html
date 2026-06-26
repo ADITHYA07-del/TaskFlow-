@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Create Task</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/layouts/layout.css">
+  <style>
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 1.6rem; max-width: 900px; }
+    .page-title h1 { font-size: 1.6rem; font-weight: 700; }
+    .page-title p { color: var(--text-muted); margin: 0.25rem 0 1rem; }
+    .status-banner { margin-bottom: 1rem; padding: 0.8rem; border-radius: 10px; background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-color); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 0.45rem; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
+    input, select, textarea { padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: var(--text-main); font-family: inherit; width: 100%; }
+    textarea { min-height: 110px; resize: vertical; }
+    .actions { display: flex; gap: 0.75rem; margin-top: 1.2rem; flex-wrap: wrap; }
+    .btn { padding: 0.8rem 1rem; border-radius: 10px; border: none; font-family: inherit; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #66bb6a); color: white; }
+    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-main); border: 1px solid var(--border-color); }
+    .message { margin-top: 1rem; padding: 0.8rem; border-radius: 10px; display: none; font-weight: 600; }
+    .message.success { display: block; background: rgba(76,175,80,0.14); color: #86efac; }
+    .message.error { display: block; background: rgba(239,68,68,0.14); color: #fda4af; }
+    @media (max-width: 860px) { .form-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <div class="layout-content">
+      <section class="card">
+        <div class="page-title"><h1 id="pageTitle">Create Task</h1><p id="pageSubtitle">Assign a new task to a team member</p></div>
+        <div id="statusBanner" class="status-banner">Loading employees…</div>
+        <form id="taskForm" onsubmit="handleSubmit(event)">
+          <div class="form-grid">
+            <div class="field full"><label for="title">Title</label><input id="title" name="title" required /></div>
+            <div class="field full"><label for="description">Description</label><textarea id="description" name="description"></textarea></div>
+            <div class="field"><label for="assigned_to">Assign To</label><select id="assigned_to" name="assigned_to" required></select></div>
+            <div class="field"><label for="priority">Priority</label><select id="priority" name="priority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+            <div class="field"><label for="due_date">Due Date</label><input id="due_date" name="due_date" type="date" required /></div>
+            <div class="field"><label for="status">Status</label><select id="status" name="status"><option value="pending">Pending</option><option value="completed">Completed</option></select></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit" id="submitBtn">Save Task</button>
+            <button class="btn btn-secondary" type="button" onclick="window.location.href='/admin/tasks'">Cancel</button>
+          </div>
+          <div id="formMessage" class="message"></div>
+        </form>
+      </section>
+    </div>
+  </div>
+  <script src="/auth.js"></script>
+  <script src="/layouts/admin-layout.js"></script>
+  <script>
+    let currentUser = null, editingTaskId = null;
+
+    (async function () {
+      currentUser = await TaskFlowAuth.guardPage('admin');
+      if (!currentUser) return;
+      AdminLayout.init({ user: currentUser, active: 'tasks' });
+      await loadEmployees();
+      await loadTaskForEdit();
+    })();
+
+    async function loadEmployees() {
+      const select = document.getElementById('assigned_to');
+      const banner = document.getElementById('statusBanner');
+      try {
+        const res = await fetch('/users?status=active');
+        if (!res.ok) throw new Error('Unable to load employees');
+        const users = await res.json();
+        select.innerHTML = '<option value="">Select employee</option>';
+        users.filter(u => u?.id).forEach(u => { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; select.appendChild(o); });
+        banner.textContent = editingTaskId ? 'Editing task details…' : 'Choose an employee to assign the task.';
+      } catch (err) {
+        banner.textContent = err.message;
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function loadTaskForEdit() {
+      const taskId = localStorage.getItem('edit_task_id');
+      if (!taskId) { document.getElementById('statusBanner').textContent = 'Create a new task for your team.'; return; }
+      editingTaskId = Number(taskId);
+      document.getElementById('pageTitle').textContent = 'Edit Task';
+      document.getElementById('pageSubtitle').textContent = 'Update the selected task details';
+      try {
+        const res = await fetch('/tasks');
+        if (!res.ok) throw new Error('Unable to load task');
+        const task = (await res.json()).find(t => Number(t.id) === editingTaskId);
+        if (!task) throw new Error('Task not found');
+        document.getElementById('title').value = task.title || '';
+        document.getElementById('description').value = task.description || '';
+        document.getElementById('assigned_to').value = task.assigned_to || '';
+        document.getElementById('priority').value = task.priority || 'medium';
+        document.getElementById('due_date').value = task.due_date ? task.due_date.split('T')[0] : '';
+        document.getElementById('status').value = task.status || 'pending';
+        document.getElementById('statusBanner').textContent = 'Task loaded. Update and save.';
+      } catch (err) {
+        document.getElementById('statusBanner').textContent = err.message;
+        showMessage(err.message, 'error');
+      }
+    }
+
+    async function handleSubmit(event) {
+      event.preventDefault();
+      const form = document.getElementById('taskForm');
+      const payload = { title: form.title.value.trim(), description: form.description.value.trim(), assigned_to: form.assigned_to.value, priority: form.priority.value, due_date: form.due_date.value, status: form.status.value, created_by: currentUser.id };
+      if (!payload.title || !payload.assigned_to || !payload.due_date) return showMessage('Please fill required fields.', 'error');
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      try {
+        let res;
+        if (editingTaskId) {
+          res = await fetch(`/tasks/${editingTaskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: payload.status }) });
+        } else {
+          res = await fetch('/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        }
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Unable to save task'); }
+        localStorage.removeItem('edit_task_id');
+        showMessage('Task saved successfully.', 'success');
+        setTimeout(() => { window.location.href = '/admin/tasks'; }, 800);
+      } catch (err) {
+        showMessage(err.message, 'error');
+        submitBtn.disabled = false;
+      }
+    }
+
+    function showMessage(message, type) {
+      const box = document.getElementById('formMessage');
+      box.textContent = message;
+      box.className = 'message ' + type;
+    }
+  </script>
+</body>
+</html>

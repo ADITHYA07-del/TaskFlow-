@@ -251,18 +251,10 @@
     TaskFlow &copy; 2026. Streamline beautifully.
   </footer>
 
+  <script src="auth.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      try {
-        const savedUser = JSON.parse(localStorage.getItem('taskflow_user') || 'null');
-        if (savedUser && savedUser.role === 'manager') {
-          window.location.replace('dashboard.html');
-        } else if (savedUser && savedUser.role === 'employee') {
-          window.location.replace('my-tasks.html');
-        }
-      } catch (err) {
-        console.error('Session redirect error:', err);
-      }
+      TaskFlowAuth.restoreSessionOnLoginPage();
     });
 
     async function handleLogin(event) {
@@ -297,19 +289,8 @@
         if (!response.ok) {
           throw new Error(result.error || 'Authentication failed');
         }
-        
-        // Save user to localStorage
-        localStorage.setItem('taskflow_user', JSON.stringify(result));
-        
-        if (result.role === 'manager') {
-          window.location.href = 'dashboard.html';
-          return;
-        }
-        if (result.role === 'employee') {
-          window.location.href = 'my-tasks.html';
-          return;
-        }
-        throw new Error('Unknown user role: ' + result.role);
+
+        TaskFlowAuth.saveLoginAndRedirect(result);
         
       } catch (err) {
         console.error('Login error:', err);

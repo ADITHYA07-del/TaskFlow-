@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - Admin Team</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/layouts/layout.css">
+  <style>
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; }
+    .page-header p { color: var(--text-muted); margin-top: 0.25rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+    .stat-label { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.4rem; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 1.2rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+    .card-title { font-size: 1.1rem; font-weight: 600; }
+    .btn-primary { background: var(--accent); color: white; border: none; padding: 0.8rem 1rem; border-radius: 10px; font-family: inherit; font-weight: 600; cursor: pointer; }
+    .section-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .user-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 16px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .user-name { font-weight: 700; }
+    .user-email, .user-role { color: var(--text-muted); font-size: 0.92rem; }
+    .pill { display: inline-block; width: fit-content; padding: 0.28rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .pill.pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .pill.active { background: var(--accent-soft); color: var(--accent); }
+    .actions-row { display: flex; gap: 0.55rem; flex-wrap: wrap; margin-top: auto; }
+    .btn-approve { background: var(--accent); color: white; border: none; padding: 0.6rem 0.75rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 600; }
+    .btn-reject, .btn-delete { background: rgba(239,68,68,0.16); color: #fda4af; border: none; padding: 0.6rem 0.75rem; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 600; }
+    .btn-role-select { padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: var(--text-main); font-family: inherit; }
+    .empty-state { padding: 1rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 14px; text-align: center; }
+    .state { text-align: center; padding: 2rem; color: var(--text-muted); }
+    .spinner { width: 38px; height: 38px; border: 3px solid rgba(255,255,255,0.16); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 1rem; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-message { margin-top: 0.75rem; font-size: 0.95rem; }
+    .status-message.error { color: #fda4af; }
+    .status-message.success { color: #86efac; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 2000; }
+    .modal { width: min(100%, 480px); background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 1.25rem; }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.8rem; }
+    .field label { color: var(--text-muted); font-size: 0.9rem; }
+    .field input, .field select { padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.04); color: var(--text-main); font-family: inherit; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+    .btn-secondary { background: transparent; color: var(--text-main); border: 1px solid var(--border-color); padding: 0.8rem 1rem; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <div class="layout-content">
+      <section class="page-header"><h1>Team Management</h1><p>Manage your team, review roles, and add employees.</p></section>
+      <section class="stats-grid">
+        <div class="stat-card"><div><div class="stat-label">Total Users</div><div class="stat-value" id="statTotal">0</div></div><div>👥</div></div>
+        <div class="stat-card"><div><div class="stat-label">Pending Review</div><div class="stat-value" id="statPending">0</div></div><div>⏳</div></div>
+        <div class="stat-card"><div><div class="stat-label">Active Members</div><div class="stat-value" id="statActive">0</div></div><div>💼</div></div>
+      </section>
+      <section class="card">
+        <div class="card-header"><div class="card-title">Approval & Management</div><button class="btn-primary" id="addEmployeeBtn">Add Employee</button></div>
+        <div id="loadingState" class="state"><div class="spinner"></div><p>Loading team members...</p></div>
+        <div id="pendingSection" style="display:none; margin-bottom:1.25rem;"><div class="card-title" style="margin-bottom:0.8rem;">Pending Approval</div><div id="pendingApprovalList" class="section-grid"></div></div>
+        <div id="activeSection" style="display:none;"><div class="card-title" style="margin-bottom:0.8rem;">Active Members</div><div id="activeMembersList" class="section-grid"></div></div>
+        <div id="statusMessage" class="status-message"></div>
+      </section>
+    </div>
+  </div>
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3>Add Employee</h3>
+      <form id="addEmployeeForm">
+        <div class="field"><label for="employeeName">Name</label><input id="employeeName" name="name" required /></div>
+        <div class="field"><label for="employeeEmail">Email</label><input id="employeeEmail" name="email" type="email" required /></div>
+        <div class="field"><label for="employeePassword">Password</label><input id="employeePassword" name="password" type="password" required /></div>
+        <div class="field"><label for="employeeRole">Role</label><select id="employeeRole" name="role"><option value="employee">Employee</option></select></div>
+        <div class="modal-actions"><button type="button" class="btn-secondary" id="cancelAddBtn">Cancel</button><button type="submit" class="btn-primary">Create Employee</button></div>
+      </form>
+    </div>
+  </div>
+  <script src="/auth.js"></script>
+  <script src="/layouts/admin-layout.js"></script>
+  <script>
+    let currentUser = null, allUsers = [];
+
+    (async function () {
+      currentUser = await TaskFlowAuth.guardPage('admin');
+      if (!currentUser) return;
+      AdminLayout.init({ user: currentUser, active: 'team' });
+      document.getElementById('addEmployeeBtn').addEventListener('click', () => { document.getElementById('modalBackdrop').style.display = 'flex'; });
+      document.getElementById('cancelAddBtn').addEventListener('click', closeModal);
+      document.getElementById('modalBackdrop').addEventListener('click', e => { if (e.target.id === 'modalBackdrop') closeModal(); });
+      document.getElementById('addEmployeeForm').addEventListener('submit', handleCreateEmployee);
+      loadUsers();
+    })();
+
+    function closeModal() { document.getElementById('modalBackdrop').style.display = 'none'; document.getElementById('addEmployeeForm').reset(); }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/users');
+        if (!res.ok) throw new Error('Unable to load team members');
+        allUsers = (await res.json()).map(u => ({ id: u.id, name: u.name || 'Unknown', email: u.email || '—', role: u.role || 'employee', status: (u.status || 'active').toLowerCase() }));
+        renderUsers();
+      } catch (err) {
+        document.getElementById('loadingState').innerHTML = `<div class="state"><h3>Error</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function renderUsers() {
+      const pending = allUsers.filter(u => u.status === 'pending');
+      const active = allUsers.filter(u => u.status === 'active');
+      document.getElementById('statTotal').textContent = allUsers.length;
+      document.getElementById('statPending').textContent = pending.length;
+      document.getElementById('statActive').textContent = active.length;
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('pendingSection').style.display = pending.length ? 'block' : 'none';
+      document.getElementById('activeSection').style.display = active.length ? 'block' : 'none';
+      document.getElementById('pendingApprovalList').innerHTML = pending.length ? pending.map(renderPendingCard).join('') : '<div class="empty-state">No users pending approval.</div>';
+      document.getElementById('activeMembersList').innerHTML = active.length ? active.map(renderActiveCard).join('') : '<div class="empty-state">No active members yet.</div>';
+    }
+
+    function renderPendingCard(user) {
+      return `<div class="user-card"><div class="user-name">${escapeHtml(user.name)}</div><div class="user-email">${escapeHtml(user.email)}</div><div class="user-role">Role: ${escapeHtml(user.role)}</div><span class="pill pending">Pending</span><div class="actions-row"><button class="btn-approve" onclick="approveUser(${user.id})">Approve</button><button class="btn-reject" onclick="rejectUser(${user.id})">Reject</button></div></div>`;
+    }
+
+    function renderActiveCard(user) {
+      const role = user.role.toLowerCase();
+      return `<div class="user-card"><div class="user-name">${escapeHtml(user.name)}</div><div class="user-email">${escapeHtml(user.email)}</div><div class="user-role">Role: ${escapeHtml(role)}</div><span class="pill active">Active</span><div class="actions-row"><select class="btn-role-select" onchange="changeUserRole(${user.id}, this.value)"><option value="employee" ${role === 'employee' ? 'selected' : ''}>Employee</option><option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option></select><button class="btn-delete" onclick="deleteUser(${user.id})">Delete</button></div></div>`;
+    }
+
+    async function handleCreateEmployee(event) {
+      event.preventDefault();
+      const form = event.target;
+      const payload = { name: form.name.value.trim(), email: form.email.value.trim(), password: form.password.value, role: form.role.value || 'employee' };
+      const res = await fetch('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return showStatus(data.error || 'Unable to add employee', true);
+      showStatus('Employee added and pending approval.', false);
+      closeModal();
+      loadUsers();
+    }
+
+    async function approveUser(id) {
+      const res = await fetch(`/users/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'active', current_user_role: currentUser.role }) });
+      if (!res.ok) return showStatus('Unable to approve user', true);
+      showStatus('User approved.', false); loadUsers();
+    }
+
+    async function rejectUser(id) {
+      const res = await fetch(`/users/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current_user_role: currentUser.role }) });
+      if (!res.ok) return showStatus('Unable to reject user', true);
+      showStatus('User rejected.', false); loadUsers();
+    }
+
+    async function changeUserRole(id, newRole) {
+      const res = await fetch(`/users/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: newRole, status: 'active', current_user_role: currentUser.role }) });
+      if (!res.ok) return showStatus('Unable to update role', true);
+      showStatus('Role updated.', false); loadUsers();
+    }
+
+    async function deleteUser(id) {
+      const res = await fetch(`/users/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ current_user_role: currentUser.role }) });
+      if (!res.ok) return showStatus('Unable to delete user', true);
+      showStatus('User removed.', false); loadUsers();
+    }
+
+    function showStatus(msg, isError) {
+      const el = document.getElementById('statusMessage');
+      el.textContent = msg;
+      el.className = 'status-message ' + (isError ? 'error' : 'success');
+    }
+
+    function escapeHtml(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>
