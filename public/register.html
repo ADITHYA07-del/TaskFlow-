@@ -121,8 +121,7 @@
       position: relative;
     }
 
-    input,
-    select {
+    input {
       width: 100%;
       padding: 0.85rem 1rem;
       background: var(--input-bg);
@@ -135,22 +134,7 @@
       transition: all 0.3s ease;
     }
 
-    select {
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 1rem center;
-      padding-right: 2.5rem;
-    }
-
-    select option {
-      background: #16213e;
-      color: var(--text-main);
-    }
-
-    input:focus,
-    select:focus {
+    input:focus {
       border-color: var(--accent-green);
       box-shadow: 0 0 12px rgba(76, 175, 80, 0.15);
       background: rgba(15, 23, 42, 0.8);
@@ -274,16 +258,6 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="role">Role</label>
-        <div class="input-wrapper">
-          <select id="role" required>
-            <option value="employee">Employee</option>
-            <option value="manager">Manager</option>
-          </select>
-        </div>
-      </div>
-
       <button type="submit" class="btn-register">Register</button>
 
       <div class="message-container">
@@ -305,7 +279,6 @@
       const nameInput = document.getElementById('name');
       const emailInput = document.getElementById('email');
       const passwordInput = document.getElementById('password');
-      const roleInput = document.getElementById('role');
       const statusMsg = document.getElementById('statusMsg');
       const registerBtn = document.querySelector('.btn-register');
 
@@ -316,7 +289,6 @@
       const name = nameInput.value.trim();
       const email = emailInput.value.trim();
       const password = passwordInput.value;
-      const role = roleInput.value;
 
       try {
         registerBtn.disabled = true;
@@ -327,7 +299,7 @@
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ name, email, password, role })
+          body: JSON.stringify({ name, email, password, role: 'employee' })
         });
 
         const result = await response.json();
