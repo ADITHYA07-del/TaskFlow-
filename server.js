@@ -60,49 +60,6 @@ Object.entries(legacyRedirects).forEach(([from, to]) => {
   app.get(from, (req, res) => res.redirect(301, to));
 });
 
-// ==========================================
-// ROLE-BASED APP ROUTES (clean URLs)
-// ==========================================
-
-const adminPages = {
-  dashboard: 'dashboard.html',
-  tasks: 'tasks.html',
-  team: 'team.html',
-  settings: 'settings.html',
-  'create-task': 'create-task.html'
-};
-
-Object.entries(adminPages).forEach(([route, file]) => {
-  app.get(`/admin/${route}`, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin', file));
-  });
-});
-
-app.get('/admin', (req, res) => res.redirect(302, '/admin/dashboard'));
-
-app.get('/member/tasks', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'member', 'tasks.html'));
-});
-
-app.get('/member/settings', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'member', 'settings.html'));
-});
-
-app.get('/member', (req, res) => res.redirect(302, '/member/tasks'));
-
-// Legacy route redirects (old flat HTML structure)
-const legacyRedirects = {
-  '/dashboard.html': '/admin/dashboard',
-  '/tasks.html': '/admin/tasks',
-  '/team.html': '/admin/team',
-  '/my-tasks.html': '/member/tasks',
-  '/create-task.html': '/admin/create-task'
-};
-
-Object.entries(legacyRedirects).forEach(([from, to]) => {
-  app.get(from, (req, res) => res.redirect(302, to));
-});
-
 // Serve static files from the public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
