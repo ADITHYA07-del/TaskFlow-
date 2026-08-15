@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Admin Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .btn-logout {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: white;
+        }
+        .btn-primary { background-color: #007bff; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            text-transform: capitalize;
+            display: inline-block;
+        }
+        .badge-pending { background-color: #6c757d; }
+        .badge-in_progress { background-color: #17a2b8; }
+        .badge-done { background-color: #28a745; }
+        .badge-high { background-color: #dc3545; }
+        .badge-medium { background-color: #ffc107; color: #333; }
+        .badge-low { background-color: #28a745; }
+        
+        /* Task Form */
+        #task-form-section {
+            display: none;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            flex: 1;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .form-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-cancel:hover { background-color: #5a6268; }
+
+        /* Review Cards */
+        .review-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 768px) {
+            .review-list { grid-template-columns: 1fr; }
+        }
+        .review-card {
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            background: #fff;
+        }
+        .review-header {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .review-header h4 {
+            margin: 0 0 5px 0;
+            color: #0056b3;
+        }
+        .review-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .review-note {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-bottom: 15px;
+            border-left: 3px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TaskFlow - Admin Dashboard</h1>
+        <button id="logout-btn" class="btn-logout">Log Out</button>
+    </div>
+    
+    <div class="container">
+        
+        <!-- Task Form -->
+        <div id="task-form-section">
+            <h2 id="form-title">Create Task</h2>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="task-title" required>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Description</label>
+                    <textarea id="task-desc" rows="2"></textarea>
+                </div>
+                <div class="form-row" style="margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Assigned To</label>
+                        <select id="task-assigned" required>
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="task-due" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="task-priority" required>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                    <button type="button" class="btn btn-cancel" onclick="hideTaskForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Task Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>All Tasks</h2>
+                <button class="btn btn-success" onclick="showCreateForm()">+ Create Task</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Assigned To</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasks-tbody">
+                        <tr><td colspan="6">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pending Reviews -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Pending Updates</h2>
+            </div>
+            <div id="reviews-container" class="review-list">
+                Loading...
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Auth check
+        const userStr = localStorage.getItem('taskflow_user');
+        if (!userStr) window.location.href = '/index.html';
+        
+        let admin;
+        try {
+            admin = JSON.parse(userStr);
+            if (admin.role !== 'admin') window.location.href = '/index.html';
+        } catch(e) {
+            window.location.href = '/index.html';
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('taskflow_user');
+            window.location.href = '/index.html';
+        });
+
+        const formSection = document.getElementById('task-form-section');
+        const form = document.getElementById('task-form');
+        
+        function showCreateForm() {
+            document.getElementById('form-title').textContent = 'Create Task';
+            form.reset();
+            document.getElementById('task-id').value = '';
+            formSection.style.display = 'block';
+            formSection.scrollIntoView({behavior: 'smooth'});
+        }
+
+        function showEditForm(task) {
+            document.getElementById('form-title').textContent = 'Edit Task';
+            document.getElementById('task-id').value = task.id;
+            document.getElementById('task-title').value = task.title;
+            document.getElementById('task-desc').value = task.description || '';
+            document.getElementById('task-assigned').value = task.assigned_to;
+            document.getElementById('task-due').value = task.due_date ? task.due_date.split('T')[0] : '';
+            document.getElementById('task-priority').value = task.priority;
+            
+            formSection.style.display = 'block';
+            formSection.scrollIntoView({behavior: 'smooth'});
+        }
+
+        function hideTaskForm() {
+            formSection.style.display = 'none';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('task-id').value;
+            
+            const payload = {
+                title: document.getElementById('task-title').value,
+                description: document.getElementById('task-desc').value,
+                assigned_to: parseInt(document.getElementById('task-assigned').value),
+                due_date: document.getElementById('task-due').value,
+                priority: document.getElementById('task-priority').value,
+                created_by: admin.id
+            };
+
+            try {
+                let res;
+                if (id) {
+                    res = await fetch(`/admin/tasks/${id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    res = await fetch('/admin/tasks', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                if (res.ok) {
+                    hideTaskForm();
+                    loadTasks();
+                } else {
+                    const err = await res.json();
+                    alert('Error saving task: ' + (err.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Network error while saving task.');
+            }
+        });
+
+        async function deleteTask(id) {
+            if (!confirm('Are you sure you want to delete this task?')) return;
+            
+            try {
+                const res = await fetch(`/admin/tasks/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadTasks();
+                } else {
+                    const err = await res.json();
+                    alert('Error deleting task: ' + (err.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Network error while deleting task.');
+            }
+        }
+
+        async function loadMembers() {
+            const select = document.getElementById('task-assigned');
+            try {
+                const res = await fetch('/admin/members');
+                if (!res.ok) throw new Error('Failed to load members');
+                const members = await res.json();
+                
+                select.innerHTML = '<option value="">Select a member...</option>';
+                members.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = `${m.name} (${m.email})`;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                select.innerHTML = '<option value="">Error loading members</option>';
+            }
+        }
+
+        async function loadTasks() {
+            const tbody = document.getElementById('tasks-tbody');
+            try {
+                const res = await fetch('/admin/tasks');
+                if (!res.ok) throw new Error('Failed to load tasks');
+                
+                const tasks = await res.json();
+                
+                tbody.innerHTML = '';
+                if (tasks.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">No tasks found.</td></tr>';
+                    return;
+                }
+
+                tasks.forEach(task => {
+                    const tr = document.createElement('tr');
+                    
+                    let assigneeStr = `ID: ${task.assigned_to}`;
+                    if (task.users && task.users.name) {
+                        assigneeStr = `${task.users.name} <br><small style="color:#666">(${task.users.email})</small>`;
+                    }
+                    
+                    // JSON.stringify can break inside HTML attributes if there are single quotes, we escape it
+                    const safeTask = JSON.stringify(task).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+                    
+                    tr.innerHTML = `
+                        <td><strong>${task.title}</strong></td>
+                        <td>${assigneeStr}</td>
+                        <td>${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
+                        <td><span class="badge badge-${task.priority}">${task.priority.replace('_', ' ')}</span></td>
+                        <td><span class="badge badge-${task.status}">${task.status.replace('_', ' ')}</span></td>
+                        <td class="actions">
+                            <button class="btn btn-primary" onclick="showEditForm(${safeTask})">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteTask(${task.id})">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:red;">Error loading tasks</td></tr>';
+            }
+        }
+
+        async function loadPendingUpdates() {
+            const container = document.getElementById('reviews-container');
+            try {
+                const res = await fetch('/admin/updates/pending');
+                if (!res.ok) throw new Error('Failed to load pending updates');
+                const updates = await res.json();
+
+                if (updates.length === 0) {
+                    container.innerHTML = '<p>No pending updates.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                updates.forEach(u => {
+                    const card = document.createElement('div');
+                    card.className = 'review-card';
+                    card.id = `review-card-${u.id}`;
+                    
+                    const taskTitle = u.tasks ? u.tasks.title : `Task #${u.task_id}`;
+                    const memberName = u.users ? u.users.name : `Member #${u.member_id}`;
+                    
+                    const noteHtml = u.note ? `<div class="review-note">${u.note}</div>` : '';
+                    
+                    card.innerHTML = `
+                        <div class="review-header">
+                            <h4>${taskTitle}</h4>
+                            <div class="review-meta">
+                                By ${memberName} | Requested Status: <span class="badge badge-${u.proposed_status}">${u.proposed_status.replace('_', ' ')}</span><br>
+                                <small>${new Date(u.created_at).toLocaleString()}</small>
+                            </div>
+                        </div>
+                        ${noteHtml}
+                        <div class="actions">
+                            <button class="btn btn-success" onclick="reviewUpdate(${u.id}, 'approve')">Approve</button>
+                            <button class="btn btn-danger" onclick="reviewUpdate(${u.id}, 'reject')">Reject</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch (err) {
+                container.innerHTML = '<p style="color:red">Error loading pending updates.</p>';
+            }
+        }
+
+        async function reviewUpdate(updateId, action) {
+            try {
+                const res = await fetch(`/admin/updates/${updateId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reviewed_by: admin.id })
+                });
+
+                if (res.ok) {
+                    const card = document.getElementById(`review-card-${updateId}`);
+                    if (card) card.remove();
+                    
+                    const container = document.getElementById('reviews-container');
+                    if (container.children.length === 0) {
+                        container.innerHTML = '<p>No pending updates.</p>';
+                    }
+
+                    loadTasks();
+                } else {
+                    const err = await res.json();
+                    alert(`Error: ${err.error || 'Failed to ' + action + ' update'}`);
+                }
+            } catch (err) {
+                alert('Network error while reviewing update.');
+            }
+        }
+
+        // Initialize page
+        loadMembers();
+        loadTasks();
+        loadPendingUpdates();
+    </script>
+</body>
+</html>

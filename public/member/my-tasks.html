@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - My Tasks</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .btn-logout {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+        #tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .task-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .task-header h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.25rem;
+            color: #0056b3;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            text-transform: capitalize;
+            display: inline-block;
+        }
+        /* task status colors */
+        .badge-pending { background-color: #6c757d; }
+        .badge-in_progress { background-color: #17a2b8; }
+        .badge-done { background-color: #28a745; }
+        
+        /* priority colors */
+        .badge-high { background-color: #dc3545; }
+        .badge-medium { background-color: #ffc107; color: #333; }
+        .badge-low { background-color: #28a745; }
+
+        .task-meta {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .task-description {
+            margin-bottom: 20px;
+            line-height: 1.5;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .update-form {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .update-form h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .btn-submit {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-submit:hover {
+            background-color: #0056b3;
+        }
+        .success-message {
+            color: #28a745;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
+            font-weight: bold;
+        }
+        .history-section h3 {
+            font-size: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .history-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .history-note {
+            font-size: 0.95rem;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            font-style: italic;
+            border-left: 3px solid #ccc;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            text-transform: capitalize;
+        }
+        .status-pending { background-color: #ffc107; color: #333; }
+        .status-approved { background-color: #28a745; }
+        .status-rejected { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TaskFlow - My Tasks</h1>
+        <button id="logout-btn" class="btn-logout">Log Out</button>
+    </div>
+    
+    <div style="max-width: 800px; margin: 0 auto 15px auto;">
+        <h2 id="task-count" style="margin: 0; font-size: 1.2rem; color: #555;"></h2>
+    </div>
+    <div id="tasks-container">
+        <!-- Tasks will be loaded here -->
+    </div>
+
+    <script>
+        // 1. Auth check
+        const userStr = localStorage.getItem('taskflow_user');
+        if (!userStr) {
+            window.location.href = '/index.html';
+        }
+        
+        let user;
+        try {
+            user = JSON.parse(userStr);
+            if (user.role !== 'member') {
+                window.location.href = '/index.html';
+            }
+        } catch (e) {
+            window.location.href = '/index.html';
+        }
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('taskflow_user');
+            window.location.href = '/index.html';
+        });
+
+        // Load tasks and history
+        async function loadTasks() {
+            const container = document.getElementById('tasks-container');
+            container.innerHTML = '<p>Loading tasks...</p>';
+
+            try {
+                const response = await fetch(`/member/tasks?user_id=${user.id}`);
+                if (!response.ok) throw new Error('Failed to load tasks');
+                
+                const tasks = await response.json();
+                
+                const countEl = document.getElementById('task-count');
+                countEl.textContent = `You have ${tasks.length} task${tasks.length === 1 ? '' : 's'} assigned`;
+                
+                if (tasks.length === 0) {
+                    container.innerHTML = '<p>No tasks assigned to you right now.</p>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                for (const task of tasks) {
+                    const card = document.createElement('div');
+                    card.className = 'task-card';
+                    card.innerHTML = `
+                        <div class="task-header">
+                            <div>
+                                <h2>${task.title}</h2>
+                                <div class="task-meta">
+                                    Due: ${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'} | 
+                                    Priority: <span class="badge badge-${task.priority}">${task.priority.replace('_', ' ')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-description">${task.description || 'No description provided.'}</div>
+                        
+                        <div class="update-form">
+                            <h3>Submit Progress Update</h3>
+                            <form id="form-task-${task.id}" data-task-id="${task.id}">
+                                <div class="form-group">
+                                    <label>Proposed Status</label>
+                                    <select name="proposed_status" required>
+                                        <option value="pending" ${task.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                        <option value="in_progress" ${task.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                                        <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Note (optional)</label>
+                                    <textarea name="note" rows="2" placeholder="Add a note about your progress..."></textarea>
+                                </div>
+                                <button type="submit" class="btn-submit">Submit Update</button>
+                                <div id="success-task-${task.id}" class="success-message">Update submitted — pending admin review</div>
+                            </form>
+                        </div>
+                        
+                    `;
+                    container.appendChild(card);
+                    
+                    // Attach form listener
+                    const form = document.getElementById(`form-task-${task.id}`);
+                    form.addEventListener('submit', handleUpdateSubmit);
+                    
+                }
+            } catch (err) {
+                container.innerHTML = `<p style="color: red;">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function handleUpdateSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const taskId = form.getAttribute('data-task-id');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const successMsg = document.getElementById(`success-task-${taskId}`);
+            
+            const proposed_status = form.elements['proposed_status'].value;
+            const note = form.elements['note'].value;
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            successMsg.style.display = 'none';
+
+            try {
+                const response = await fetch(`/member/tasks/${taskId}/updates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        member_id: user.id,
+                        proposed_status,
+                        note
+                    })
+                });
+
+                if (response.ok) {
+                    successMsg.style.display = 'block';
+                    form.elements['note'].value = '';
+                    // Success indicator handled above
+                } else {
+                    const errData = await response.json();
+                    alert('Error submitting update: ' + (errData.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Network error while submitting update.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Update';
+            }
+        }
+
+
+
+        // Initialize page
+        loadTasks();
+    </script>
+</body>
+</html>
