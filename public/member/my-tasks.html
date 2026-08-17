@@ -187,6 +187,7 @@
         .status-approved { background-color: #28a745; }
         .status-rejected { background-color: #dc3545; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="header">
@@ -202,6 +203,11 @@
     </div>
 
     <script>
+        const supabaseClient = supabase.createClient(
+            "https://stgxcbdpjmytsbfuuvbm.supabase.co",
+            "sb_publishable_mAVcKI48iPgVs5nybDtRgw_oSTpiBtE"
+        );
+
         // 1. Auth check
         const userStr = localStorage.getItem('taskflow_user');
         if (!userStr) {
@@ -275,6 +281,11 @@
                                     <label>Note (optional)</label>
                                     <textarea name="note" rows="2" placeholder="Add a note about your progress..."></textarea>
                                 </div>
+                                <div class="form-group">
+                                    <label>Attachment (optional)</label>
+                                    <input type="file" name="file_upload" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit;">
+                                </div>
+                                <div id="error-task-${task.id}" style="color: #dc3545; font-size: 0.9rem; margin-bottom: 10px; display: none; font-weight: bold;"></div>
                                 <button type="submit" class="btn-submit">Submit Update</button>
                                 <div id="success-task-${task.id}" class="success-message">Update submitted — pending admin review</div>
                             </form>
@@ -299,13 +310,37 @@
             const taskId = form.getAttribute('data-task-id');
             const submitBtn = form.querySelector('button[type="submit"]');
             const successMsg = document.getElementById(`success-task-${taskId}`);
+            const errorMsg = document.getElementById(`error-task-${taskId}`);
             
             const proposed_status = form.elements['proposed_status'].value;
             const note = form.elements['note'].value;
+            const fileInput = form.elements['file_upload'];
+            const file = fileInput.files[0];
             
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
             successMsg.style.display = 'none';
+            if (errorMsg) errorMsg.style.display = 'none';
+
+            let file_url = null;
+
+            if (file) {
+                const path = `${taskId}-${Date.now()}-${file.name}`;
+                const { data, error } = await supabaseClient.storage.from('task-uploads').upload(path, file);
+                
+                if (error) {
+                    if (errorMsg) {
+                        errorMsg.textContent = 'File upload failed: ' + error.message;
+                        errorMsg.style.display = 'block';
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Update';
+                    return;
+                }
+                
+                const { data: publicData } = supabaseClient.storage.from('task-uploads').getPublicUrl(path);
+                file_url = publicData.publicUrl;
+            }
 
             try {
                 const response = await fetch(`/member/tasks/${taskId}/updates`, {
@@ -314,13 +349,15 @@
                     body: JSON.stringify({
                         member_id: user.id,
                         proposed_status,
-                        note
+                        note,
+                        file_url
                     })
                 });
 
                 if (response.ok) {
                     successMsg.style.display = 'block';
                     form.elements['note'].value = '';
+                    if (fileInput) fileInput.value = '';
                     // Success indicator handled above
                 } else {
                     const errData = await response.json();
