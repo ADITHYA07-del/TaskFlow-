@@ -473,6 +473,7 @@
                     const memberName = u.users ? u.users.name : `Member #${u.member_id}`;
                     
                     const noteHtml = u.note ? `<div class="review-note">${u.note}</div>` : '';
+                    const fileHtml = u.file_url ? `<div style="margin-bottom: 15px; font-size: 0.9rem;"><a href="${u.file_url}" target="_blank">View attached file</a></div>` : '';
                     
                     card.innerHTML = `
                         <div class="review-header">
@@ -483,6 +484,7 @@
                             </div>
                         </div>
                         ${noteHtml}
+                        ${fileHtml}
                         <div class="actions">
                             <button class="btn btn-success" onclick="reviewUpdate(${u.id}, 'approve')">Approve</button>
                             <button class="btn btn-danger" onclick="reviewUpdate(${u.id}, 'reject')">Reject</button>
