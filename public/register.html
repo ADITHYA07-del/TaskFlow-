@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaskFlow - Login</title>
+    <title>TaskFlow - Register</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -15,34 +14,29 @@
             height: 100vh;
             margin: 0;
         }
-
-        .login-container {
+        .register-container {
             background: white;
             padding: 2rem;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 400px;
             box-sizing: border-box;
         }
-
-        .login-container h1 {
+        .register-container h1 {
             margin-top: 0;
             text-align: center;
             color: #333;
         }
-
         .form-group {
             margin-bottom: 1rem;
         }
-
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
             color: #666;
             font-size: 0.9rem;
         }
-
         .form-group input {
             width: 100%;
             padding: 0.75rem;
@@ -51,11 +45,10 @@
             box-sizing: border-box;
             font-size: 1rem;
         }
-
         .btn-submit {
             width: 100%;
             padding: 0.75rem;
-            background-color: #007bff;
+            background-color: #28a745;
             color: white;
             border: none;
             border-radius: 4px;
@@ -64,11 +57,9 @@
             margin-top: 1rem;
             transition: background-color 0.2s;
         }
-
         .btn-submit:hover {
-            background-color: #0056b3;
+            background-color: #218838;
         }
-
         #error-message {
             color: #dc3545;
             background-color: #f8d7da;
@@ -79,14 +70,24 @@
             display: none;
             font-size: 0.9rem;
         }
+        .login-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .login-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
-
 <body>
-    <div class="login-container">
-        <h1>TaskFlow</h1>
+    <div class="register-container">
+        <h1>Register</h1>
         <div id="error-message"></div>
-        <form id="login-form">
+        <form id="register-form">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" required>
@@ -95,31 +96,29 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn-submit">Log In</button>
+            <button type="submit" class="btn-submit">Sign Up</button>
         </form>
-        <a href="/register.html"
-            style="display: block; text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #007bff; text-decoration: none;">Don't
-            have an account? Register</a>
+        <a href="/index.html" class="login-link">Already have an account? Log In</a>
     </div>
 
     <script>
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
+            
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error-message');
             const submitBtn = document.querySelector('.btn-submit');
-
+            
             errorDiv.style.display = 'none';
             errorDiv.textContent = '';
-
+            
             const originalBtnText = submitBtn.textContent;
-            submitBtn.textContent = 'Logging in...';
+            submitBtn.textContent = 'Registering...';
             submitBtn.disabled = true;
 
             try {
-                const response = await fetch('/auth/login', {
+                const response = await fetch('/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -130,20 +129,9 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    localStorage.setItem('taskflow_token', data.token);
-                    localStorage.setItem('taskflow_user', JSON.stringify(data.user));
-                    if (data.user.role === 'admin') {
-                        window.location.href = '/admin/dashboard.html';
-                    } else if (data.user.role === 'member') {
-                        window.location.href = '/member/my-tasks.html';
-                    } else {
-                        errorDiv.textContent = 'Unknown role: ' + data.user.role;
-                        errorDiv.style.display = 'block';
-                        submitBtn.textContent = originalBtnText;
-                        submitBtn.disabled = false;
-                    }
+                    window.location.href = '/index.html';
                 } else {
-                    errorDiv.textContent = data.error || 'Login failed';
+                    errorDiv.textContent = data.error || 'Registration failed';
                     errorDiv.style.display = 'block';
                     submitBtn.textContent = originalBtnText;
                     submitBtn.disabled = false;
@@ -157,5 +145,4 @@
         });
     </script>
 </body>
-
 </html>

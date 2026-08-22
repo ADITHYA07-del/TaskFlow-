@@ -78,6 +78,9 @@
         .badge-pending { background-color: #6c757d; }
         .badge-in_progress { background-color: #17a2b8; }
         .badge-done { background-color: #28a745; }
+        .badge-status-pending { background-color: #6c757d; }
+        .badge-status-in_progress { background-color: #17a2b8; }
+        .badge-status-done { background-color: #28a745; }
         
         /* priority colors */
         .badge-high { background-color: #dc3545; }
@@ -260,7 +263,8 @@
                                 <h2>${task.title}</h2>
                                 <div class="task-meta">
                                     Due: ${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'} | 
-                                    Priority: <span class="badge badge-${task.priority}">${task.priority.replace('_', ' ')}</span>
+                                    Priority: <span class="badge badge-${task.priority}">${task.priority.replace('_', ' ')}</span> | 
+                                    Status: <span class="badge badge-status-${task.status}">${task.status.replace('_', ' ')}</span>
                                 </div>
                             </div>
                         </div>

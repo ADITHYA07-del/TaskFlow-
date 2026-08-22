@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const supabase = require('../db');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.use(authenticateToken);
+router.use(requireAdmin);
 
 // GET /tasks
 router.get('/tasks', async (req, res) => {
@@ -194,6 +201,116 @@ router.get('/members', async (req, res) => {
 
     if (error) throw error;
     res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /tasks/:id/mark-invoice-pending
+router.post('/tasks/:id/mark-invoice-pending', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ status: 'completed_invoice_pending' })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Task not found' });
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /tasks/:id/upload-invoice
+router.post('/tasks/:id/upload-invoice', upload.single('invoice'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Invoice file is required' });
+    }
+
+    // Check task existence and status
+    const { data: task, error: fetchError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (task.status !== 'completed_invoice_pending') {
+      return res.status(400).json({
+        error: "Task status must be 'completed_invoice_pending' to upload an invoice"
+      });
+    }
+
+    const fileExt = req.file.originalname ? req.file.originalname.split('.').pop() : 'pdf';
+    const filePath = `task-${id}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('invoices')
+      .upload(filePath, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: true
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: updatedTask, error: updateError } = await supabase
+      .from('tasks')
+      .update({
+        invoice_url: filePath,
+        status: 'completed'
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.status(200).json(updatedTask);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /tasks/:id/invoice
+router.get('/tasks/:id/invoice', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data: task, error } = await supabase
+      .from('tasks')
+      .select('invoice_url, status')
+      .eq('id', id)
+      .single();
+
+    if (error || !task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!task.invoice_url) {
+      return res.status(404).json({ error: 'Task has no invoice yet' });
+    }
+
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('invoices')
+      .createSignedUrl(task.invoice_url, 300);
+
+    if (signedError) throw signedError;
+
+    res.status(200).json({
+      invoice_url: signedData.signedUrl,
+      status: task.status
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
